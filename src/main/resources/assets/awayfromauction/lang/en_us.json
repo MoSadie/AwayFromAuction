@@ -1,0 +1,16 @@
+{
+  "awayfromauction.apitest.fail": "[AfA] You Hypixel API key didn't work. Make sure you set it correctly, and try again!",
+  "awayfromauction.apitest.start": "[AfA] Testing your Hypixel API key..",
+  "awayfromauction.apitest.succeed": "[AfA] Your Hypixel API key works!",
+  "awayfromauction.autoapikey.success": "[AfA] Sucessfully grabbed your Hypixel API key from chat!",
+  "awayfromauction.command.joinhypixel.fail": "[AfA] Didn't connect to Hypixel! Already connected!s",
+  "awayfromauction.command.joinhypixel.start": "[AfA] Now connecting to Hypixel...",
+  "awayfromauction.command.key.fail": "[AfA] Failed to save your Hypixel API key! Please try again!",
+  "awayfromauction.command.key.success": "[AfA] Sucessfully saved your Hypixel API key!",
+  "awayfromauction.command.supriseme.success": "[AfA] Viewing a random auction, please wait...",
+  "awayfromauction.command.usage": "[AfA] Usage: \n/afa key <key>: to set your Hypixel API key.\n/afa test: Test your API key.\n/afa view <uuid>: Shows info on an auction.\n/afa supriseme: Shows a random auction.",
+  "awayfromauction.command.view.success": "[AfA] Viewing info on auction %s. Click this message to view again.",
+  "awayfromauction.command.view.usage": "[AfA] /afa view <auction uuid>: Pulls up detailed information on a specific auction.",
+  "awayfromauction.gui.joinhypixel.body": "You are about to leave your current server/world and join mc.hypixel.net.\n\nAre you sure you want to do this?",
+  "awayfromauction.gui.joinhypixel.title": "WARNING: About to change servers!"
+}
