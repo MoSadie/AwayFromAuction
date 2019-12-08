@@ -12,13 +12,13 @@ The full list of commands can be found by running the `/afa` command while in-ga
 # Setup
 0. Download and install this mod like any other Minecraft Forge mod.
 1. Configure your Hypixel API key using one of these two methods:
-  1. For people who don't already have an API key:
-      1. Join the Hypixel Minecraft Server: `mc.hypixel.net`
-      2. Type the command `/api`
-      3. Write down the API key. (Just in case you need to manually input it.)
-      4. Look for a chat message letting you know the key was automatically detected.
-  2. For people who already have an API key:
-    1. Run the command `/afa key <paste your key here>` while in any Minecraft world/server.
+    1. For people who don't already have an API key:
+        1. Join the Hypixel Minecraft Server: `mc.hypixel.net`
+        2. Type the command `/api`
+        3. Write down the API key. (Just in case you need to manually input it.)
+        4. Look for a chat message letting you know the key was automatically detected.
+    2. For people who already have an API key:
+        1. Run the command `/afa key <paste your key here>` while in any Minecraft world/server.
 2. Use the `/afa` command to view the auction house!
 
 {% if site.github.releases.size > 0 %}
