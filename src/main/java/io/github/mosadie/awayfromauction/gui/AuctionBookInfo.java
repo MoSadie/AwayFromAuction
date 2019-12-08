@@ -2,17 +2,16 @@ package io.github.mosadie.awayfromauction.gui;
 
 import java.time.Duration;
 
-import io.github.mosadie.awayfromauction.AwayFromAuction;
+import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
-import net.minecraft.client.gui.screen.ReadBookScreen;
+import net.minecraft.client.gui.screen.ReadBookScreen.IBookInfo;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextFormatting;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraft.util.text.event.HoverEvent;
 import net.minecraft.util.text.event.HoverEvent.Action;
 
-public class AuctionBookInfo implements ReadBookScreen.IBookInfo {
+public class AuctionBookInfo implements IBookInfo {
     private final Auction auction;
 
     @Override
@@ -23,21 +22,28 @@ public class AuctionBookInfo implements ReadBookScreen.IBookInfo {
     @Override
     public ITextComponent func_216915_a(int page) { // Get text for a specific page, starting at 0
         StringTextComponent root = new StringTextComponent("Auction Details for \n");
-        StringTextComponent sibling = new StringTextComponent(auction.getItemName() + "\n\n");
+        StringTextComponent sibling = new StringTextComponent(auction.getItemName() + (auction.getItemStack().getCount() > 0 ? " x" + auction.getItemStack().getCount() : "") + "\n\n");
         sibling.getStyle()
                 .setUnderlined(true)
-                .setColor(getColorFromTier(auction.getTier()))
+                .setColor(AfAUtils.getColorFromTier(auction.getTier()))
                 .setHoverEvent(new HoverEvent(Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
                 
         root.appendSibling(sibling);
 
         switch(page) {
             case 0: // Overview
-            StringTextComponent owner = new StringTextComponent("Auction Owner:\n" + auction.getAWA().getPlayerName(auction.getAuctionOwnerUUID()) + "\n");
+            StringTextComponent owner = new StringTextComponent("Auction Owner: ");
+            StringTextComponent ownerName = new StringTextComponent(auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
+            ownerName.getStyle()
+                        .setUnderlined(true)
+                        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
+                        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view other auctions by " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
+            owner.appendSibling(ownerName);
+            owner.appendText("\n");
 
             StringTextComponent currentBid;
             if (auction.getHighestBid() != null) {
-                currentBid = new StringTextComponent("Current bid: " + auction.getHighestBidAmount() + " by " + auction.getAWA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n");
+                currentBid = new StringTextComponent("Current bid: " + auction.getHighestBidAmount() + " by " + auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n");
             } else {
                 currentBid = new StringTextComponent("Starting bid: " + auction.getStartingBid() + "\n");
             }
@@ -73,19 +79,29 @@ public class AuctionBookInfo implements ReadBookScreen.IBookInfo {
             break;
 
             case 1: // Item Info
-            StringTextComponent name = new StringTextComponent("Item Name: " + auction.getItemName() + "\n");
+            StringTextComponent name = new StringTextComponent("Item Name: ");
+            StringTextComponent nameLink = new StringTextComponent(auction.getItemName());
+            nameLink.getStyle()
+                        .setUnderlined(true)
+                        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa search " + auction.getItemName()))
+                        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view all auctions for " + auction.getItemName())));
+            name.appendSibling(nameLink);
+            name.appendText("\n");
 
             StringTextComponent rarity = new StringTextComponent("Rarity: " + auction.getTier() + "\n");
 
+            StringTextComponent count = new StringTextComponent("Item Count: " + auction.getItemCount() + "\n");
+
             StringTextComponent lore = new StringTextComponent("Lore: ");
             StringTextComponent loreHover = new StringTextComponent("Hover");
-            loreHover.getStyle().setUnderlined(true).setColor(getColorFromTier(auction.getTier())).setHoverEvent(new HoverEvent(Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
+            loreHover.getStyle().setUnderlined(true).setColor(AfAUtils.getColorFromTier(auction.getTier())).setHoverEvent(new HoverEvent(Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
             lore.appendSibling(loreHover);
             lore.appendSibling(new StringTextComponent("\n"));
 
             root.appendSibling(name);
             root.appendSibling(rarity);
             root.appendSibling(lore);
+            root.appendSibling(count);
             break;
 
             case 2: // UUID Copy / Join Hypixel
@@ -102,29 +118,6 @@ public class AuctionBookInfo implements ReadBookScreen.IBookInfo {
         }
 
         return root;
-    }
-
-    private TextFormatting getColorFromTier(String tier) {
-        switch(tier) {
-            case "COMMON":
-                return TextFormatting.GRAY;
-            
-            case "UNCOMMON":
-                return TextFormatting.GREEN;
-
-            case "RARE":
-                return TextFormatting.DARK_BLUE;
-                
-            case "EPIC":
-                return TextFormatting.DARK_PURPLE;
-                
-            case "LEGENDARY":
-                return TextFormatting.GOLD;
-
-            default:
-                AwayFromAuction.getLogger().info("Unknown tier type! " + tier);
-                return TextFormatting.GRAY;
-        }
     }
 
     public AuctionBookInfo(Auction auction) {

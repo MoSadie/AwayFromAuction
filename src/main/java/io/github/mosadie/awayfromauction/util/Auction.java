@@ -29,6 +29,7 @@ public class Auction {
     private final Date syncTimestamp;
     private final String itemName;
     private final String itemLore;
+    private final int itemCount;
     private final String extra;
     private final String category;
     private final String tier;
@@ -39,10 +40,10 @@ public class Auction {
     private final int highestBidAmount;
     private final Bid[] bids;
 
-    private final AwayFromAuction awa;
+    private final AwayFromAuction afa;
 
     public Auction(JsonObject auctionData, AwayFromAuction awa) {
-        this.awa = awa;
+        this.afa = awa;
         auctionUUID = UUID.fromString(addHyphens(auctionData.get("uuid").getAsString()));
         ownerUUID = UUID.fromString(addHyphens(auctionData.get("auctioneer").getAsString()));
         ownerProfileUUID = UUID.fromString(addHyphens(auctionData.get("profile_id").getAsString()));
@@ -82,8 +83,15 @@ public class Auction {
 
         if (nbt == null) {
             itemStack = ItemStack.EMPTY;
+            itemCount = 0;
+            AwayFromAuction.getLogger().error("Auction Item NBT is null! Using Empy Item.");
         } else {
-            itemStack = ItemStack.read(nbt);
+            itemCount = nbt.getList("i", 10).getCompound(0).getInt("Count");
+
+            int itemId = Integer.parseInt(nbt.getList("i", 10).getCompound(0).get("id").getString().replace("s", ""));
+            String regName = AfAUtils.convertIDtoRegName(itemId, itemName);
+            nbt.getList("i", 10).getCompound(0).putString("id", regName);
+            itemStack = ItemStack.read(nbt.getList("i", 10).getCompound(0));
         }
 
         claimed = auctionData.get("claimed").getAsBoolean();
@@ -113,6 +121,7 @@ public class Auction {
         syncTimestamp = new Date();
         itemName = "Error";
         itemLore = "Error";
+        itemCount = 0;
         extra = "Error";
         category = "Error";
         tier = "Error";
@@ -122,7 +131,7 @@ public class Auction {
         claimedBidders =new UUID[] {Minecraft.getInstance().player.getUniqueID()};
         highestBidAmount = 0;
         bids = new Bid[] {new Bid()};
-        awa = null;
+        afa = null;
     }
 
     public UUID getAuctionUUID() {
@@ -159,6 +168,10 @@ public class Auction {
 
     public String getItemLore() {
         return itemLore;
+    }
+
+    public int getItemCount() {
+        return itemCount;
     }
 
     public String getExtra() {
@@ -205,21 +218,19 @@ public class Auction {
         return bids;
     }
 
-    public AwayFromAuction getAWA() {
-        return awa;
+    public AwayFromAuction getAFA() {
+        return afa;
     }
 
     public class Bid {
         private final UUID auctionUUID;
         private final UUID bidderUUID;
-        private final UUID profileUUID;
         private final int amount;
         private final Date timestamp;
     
         public Bid(JsonObject bidData) {
             auctionUUID = UUID.fromString(addHyphens(bidData.get("auction_id").getAsString()));
             bidderUUID = UUID.fromString(addHyphens(bidData.get("bidder").getAsString()));
-            profileUUID = UUID.fromString(addHyphens(bidData.get("profile_id").getAsString()));
             amount = bidData.get("amount").getAsInt();
             timestamp = new Date(bidData.get("timestamp").getAsLong());
         }
@@ -227,7 +238,6 @@ public class Auction {
         private Bid() {
             auctionUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
             bidderUUID = Minecraft.getInstance().player.getUniqueID();
-            profileUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
             amount = 0;
             timestamp = new Date();
         }
@@ -238,10 +248,6 @@ public class Auction {
 
         public UUID getBidderUUID() {
             return bidderUUID;
-        }
-
-        public UUID getProfileUUID() {
-            return profileUUID;
         }
 
         public int getAmount() {

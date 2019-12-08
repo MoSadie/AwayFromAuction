@@ -4,6 +4,10 @@ import java.util.Random;
 import java.util.UUID;
 
 import io.github.mosadie.awayfromauction.gui.AuctionBookInfo;
+import io.github.mosadie.awayfromauction.gui.AuctionSearchBookInfo;
+import io.github.mosadie.awayfromauction.gui.AuctionSelectItemBookInfo;
+import io.github.mosadie.awayfromauction.gui.AuctionsBookInfo;
+import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
 import it.unimi.dsi.fastutil.booleans.BooleanConsumer;
 import net.minecraft.client.Minecraft;
@@ -14,13 +18,11 @@ import net.minecraft.client.gui.screen.MainMenuScreen;
 import net.minecraft.client.gui.screen.MultiplayerScreen;
 import net.minecraft.client.gui.screen.ReadBookScreen;
 import net.minecraft.realms.RealmsBridge;
-import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraftforge.client.event.ClientChatEvent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
-import net.minecraftforge.client.event.GuiOpenEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
+import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class ClientEventHandler {
@@ -37,19 +39,8 @@ public class ClientEventHandler {
         }
         
         event.setCanceled(true); // Stop the message being sent to server
-        
-        if (event.getMessage().equalsIgnoreCase("/afatest")) { //TODO remove
-            AwayFromAuction.getLogger().info("AFATEST command executed.");
-            Minecraft.getInstance().player.sendMessage(new StringTextComponent("On Hypixel: " + mod.onHypixel()));
-            Auction[] auctions = mod.getAuctions();
-            Auction auction = auctions[new Random().nextInt(auctions.length)];
-            AuctionBookInfo auctionBookInfo = new AuctionBookInfo(auction);
-            
-            Minecraft.getInstance().enqueue(() -> {
-                Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(auctionBookInfo));
-            });
-            return;
-        }
+
+        AwayFromAuction.getLogger().debug("Command received! Command: " + event.getMessage());
         
         String[] args = event.getMessage().split(" ");
         
@@ -95,6 +86,60 @@ public class ClientEventHandler {
                 Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
             }
             break;
+
+            case "stats":
+            Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.stats",
+                mod.getAuctions().length,
+                mod.getAuctionItems().length,
+                mod.getAuctionsByPlayer(Minecraft.getInstance().player.getUniqueID()).length,
+                mod.getBidOnAuctions().length,
+                mod.getTotalCoins()));
+            break;
+
+            case "searchuser":
+            if (args.length != 3) {
+                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.help"));
+                return;
+            }
+                UUID userUUID = mod.getPlayerUUID(args[2]);
+                if (userUUID == null) {
+                    Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.notfound"));
+                    return;
+                }
+                Auction[] userAuctions = mod.getAuctionsByPlayer(userUUID);
+                AuctionSearchBookInfo searchBookInfo = new AuctionSearchBookInfo(userAuctions, args[2]);
+                Minecraft.getInstance().enqueue(() -> {
+                    Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(searchBookInfo));
+                });
+            break;
+
+            case "search":
+            if (args.length < 3) {
+                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.search.help"));
+                return;
+            } 
+            String item = args[2];
+            for (int i = 3; i < args.length; i++) {
+                item += " " + args[i];
+            }
+            String[] possibleItems = mod.getAuctionItems(item);
+            if (possibleItems.length == 0) {
+                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.search.itemnotfound"));
+                return;
+            } else if (possibleItems.length == 1) {
+                Auction[] itemAuctions = mod.getAuctionsByItem(possibleItems[0]);
+                AuctionSearchBookInfo itemAuctionSearchBookInfo = new AuctionSearchBookInfo(itemAuctions, item);
+                Minecraft.getInstance().enqueue(() -> {
+                    Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(itemAuctionSearchBookInfo));
+                });
+                return;
+            } else {
+                AuctionSelectItemBookInfo itemSelectBookInfo = new AuctionSelectItemBookInfo(possibleItems, mod);
+                Minecraft.getInstance().enqueue(() -> {
+                    Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(itemSelectBookInfo));
+                });
+            }
+            break;
             
             case "joinhypixel":
             if (mod.onHypixel()) {
@@ -129,7 +174,7 @@ public class ClientEventHandler {
                             }
 
                             // Connect to Hypixel
-                            ConnectingScreen screen = new ConnectingScreen(Minecraft.getInstance().currentScreen, Minecraft.getInstance(), "mc.hypixel.net", 25565); //TODO Change to mc.hypixel.net
+                            ConnectingScreen screen = new ConnectingScreen(Minecraft.getInstance().currentScreen, Minecraft.getInstance(), "mc.hypixel.net", 25565);
                             Minecraft.getInstance().displayGuiScreen(screen);
                         });
                     } else {
@@ -144,10 +189,21 @@ public class ClientEventHandler {
                 Minecraft.getInstance().displayGuiScreen(screen);
             });
             break;
+
+            case "viewall":
+            Auction[] allAuctions = mod.getAuctions();
+            AuctionsBookInfo auctionsBookInfo = new AuctionsBookInfo(allAuctions);
+            Minecraft.getInstance().enqueue(() -> {
+                Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(auctionsBookInfo));
+            });
+            break;
             
             case "supriseme":
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.supriseme.success"));
             Auction[] auctions = mod.getAuctions();
+            if (auctions.length == 0) {
+                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.supriseme.fail",Config.GENERAL_REFRESH_DELAY));
+            }
             Auction randAuction = auctions[new Random().nextInt(auctions.length)];
             args = new String[] {"/afa", "view", randAuction.getAuctionUUID().toString()};
             // Fall to view case
@@ -159,10 +215,11 @@ public class ClientEventHandler {
             }
             
             UUID auctionUUID;
+            
             if (args[2].contains("-")) {
                 auctionUUID = UUID.fromString(args[2]);
             } else {
-                auctionUUID = UUID.fromString(addHyphens(args[2]));
+                auctionUUID = UUID.fromString(AfAUtils.addHyphens(args[2]));
             }
             
             Auction auction = mod.getAuction(auctionUUID);
@@ -203,13 +260,14 @@ public class ClientEventHandler {
             }
         }
     }
-    
-    @SubscribeEvent(priority = EventPriority.LOWEST)
-    public static void onGUIOpen(GuiOpenEvent event) {
-        AwayFromAuction.getLogger().info("GUI TIME: " + event.getGui().getClass() + " " + event.isCanceled());
+
+    @SubscribeEvent
+    public void onWorldLoad(WorldEvent.Load event) {
+        mod.createSyncThread();
     }
-    
-    private static String addHyphens(String uuid) {
-        return uuid.replaceAll("(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})", "$1-$2-$3-$4-$5"); // Shamelessly stolen from StackOverflow  
+
+    @SubscribeEvent
+    public void onWorldUnload(WorldEvent.Unload event) {
+        mod.stopSyncThread();
     }
 }
