@@ -47,18 +47,18 @@ public class AuctionBookInfo implements IBookInfo {
             .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
             .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view other auctions by " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
             owner.appendSibling(ownerName);
-            owner.appendText("\n");
+            owner.appendText("\n\n");
             
             StringTextComponent currentBid;
             if (auction.getHighestBid() != null) {
-                currentBid = new StringTextComponent("Current bid: " + auction.getHighestBidAmount() + " by " + auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n");
+                currentBid = new StringTextComponent("Current bid: " + auction.getHighestBidAmount() + " by " + auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n\n");
             } else {
-                currentBid = new StringTextComponent("Starting bid: " + auction.getStartingBid() + "\n");
+                currentBid = new StringTextComponent("Starting bid: " + auction.getStartingBid() + "\n\n");
             }
             
             StringTextComponent timeLeft;
             if (auction.getEnd().before(auction.getSyncTimestamp())) {
-                timeLeft = new StringTextComponent("Time Left: Ended!\n");
+                timeLeft = new StringTextComponent("Time Left: Ended!\n\n");
             } else {
                 Duration time = Duration.between(auction.getSyncTimestamp().toInstant(), auction.getEnd().toInstant());
                 String timeLeftString = "";
@@ -78,7 +78,7 @@ public class AuctionBookInfo implements IBookInfo {
                     timeLeftString += time.getSeconds() + " second" + (time.getSeconds() > 1 ? "s" : "") + " ";
                     time = time.minusSeconds(time.getSeconds());
                 }
-                timeLeft = new StringTextComponent("Time Left: " + timeLeftString + "\n");
+                timeLeft = new StringTextComponent("Time Left: " + timeLeftString + "\n\n");
             }
             
             root.appendSibling(owner);
@@ -94,7 +94,7 @@ public class AuctionBookInfo implements IBookInfo {
             .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa search " + auction.getItemName()))
             .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view all auctions for " + auction.getItemName())));
             name.appendSibling(nameLink);
-            name.appendText("\n");
+            name.appendText("\n\n");
             
             StringTextComponent rarity = new StringTextComponent("Rarity: " + auction.getTier() + "\n");
             
@@ -104,7 +104,7 @@ public class AuctionBookInfo implements IBookInfo {
             StringTextComponent loreHover = new StringTextComponent("Hover");
             loreHover.getStyle().setUnderlined(true).setColor(AfAUtils.getColorFromTier(auction.getTier())).setHoverEvent(new HoverEvent(Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
             lore.appendSibling(loreHover);
-            lore.appendSibling(new StringTextComponent("\n"));
+            lore.appendText("\n\n");
             
             root.appendSibling(name);
             root.appendSibling(rarity);
@@ -113,7 +113,7 @@ public class AuctionBookInfo implements IBookInfo {
             break;
             
             case 2: // UUID Copy / Join Hypixel
-            StringTextComponent info = new StringTextComponent("Auction UUID: (Click to get view command in chat)\n");
+            StringTextComponent info = new StringTextComponent("Auction UUID: (Click to get link in chat)\n");
             StringTextComponent uuid = new StringTextComponent(auction.getAuctionUUID().toString() + "\n");
             uuid.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));
             

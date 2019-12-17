@@ -37,7 +37,7 @@ public class AuctionsBookInfo implements IBookInfo {
         
         Auction auction = auctions[page];
         
-        StringTextComponent itemTitle = new StringTextComponent(auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : "") + "\n");
+        StringTextComponent itemTitle = new StringTextComponent(auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : "") + "\n\n");
         itemTitle.getStyle()
         .setUnderlined(true)
         .setColor(AfAUtils.getColorFromTier(auction.getTier()))

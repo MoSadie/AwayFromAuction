@@ -19,16 +19,12 @@ import net.minecraft.client.gui.screen.MultiplayerScreen;
 import net.minecraft.client.gui.screen.ReadBookScreen;
 import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.realms.RealmsBridge;
-import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraftforge.client.event.ClientChatEvent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedInEvent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedOutEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
-import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class ClientEventHandler {
@@ -126,23 +122,28 @@ public class ClientEventHandler {
             for (int i = 3; i < args.length; i++) {
                 item += " " + args[i];
             }
-            String[] possibleItems = mod.getAuctionItems(item);
-            if (possibleItems.length == 0) {
-                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.search.itemnotfound"));
-                return;
-            } else if (possibleItems.length == 1) {
-                Auction[] itemAuctions = mod.getAuctionsByItem(possibleItems[0]);
-                AuctionSearchBookInfo itemAuctionSearchBookInfo = new AuctionSearchBookInfo(itemAuctions, item);
-                Minecraft.getInstance().enqueue(() -> {
-                    Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(itemAuctionSearchBookInfo));
-                });
-                return;
+            Auction[] itemAuctions;
+            if (mod.isAuctionItem(item)) {
+                itemAuctions = mod.getAuctionsByItem(item);
             } else {
-                AuctionSelectItemBookInfo itemSelectBookInfo = new AuctionSelectItemBookInfo(possibleItems, mod);
-                Minecraft.getInstance().enqueue(() -> {
-                    Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(itemSelectBookInfo));
-                });
+                String[] possibleItems = mod.getAuctionItems(item);
+                if (possibleItems.length == 0) {
+                    Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.search.itemnotfound"));
+                    return;
+                } else if (possibleItems.length == 1) {
+                    itemAuctions = mod.getAuctionsByItem(possibleItems[0]);
+                } else {
+                    AuctionSelectItemBookInfo itemSelectBookInfo = new AuctionSelectItemBookInfo(possibleItems, mod);
+                    Minecraft.getInstance().enqueue(() -> {
+                        Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(itemSelectBookInfo));
+                    });
+                    return;
+                }
             }
+            AuctionSearchBookInfo itemAuctionSearchBookInfo = new AuctionSearchBookInfo(itemAuctions, item);
+            Minecraft.getInstance().enqueue(() -> {
+                Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(itemAuctionSearchBookInfo));
+            });
             break;
             
             case "joinhypixel":
@@ -215,7 +216,8 @@ public class ClientEventHandler {
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.supriseme.success"));
             Auction[] auctions = mod.getAuctions();
             if (auctions.length == 0) {
-                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("error.notsync",Config.GENERAL_REFRESH_DELAY));
+                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("error.notsync",Config.GENERAL_REFRESH_DELAY.get()));
+                return;
             }
             Auction randAuction = auctions[new Random().nextInt(auctions.length)];
             args = new String[] {"/afa", "view", randAuction.getAuctionUUID().toString()};
@@ -248,12 +250,6 @@ public class ClientEventHandler {
             });
             break;
             
-            case "forcesync": //TODO Remove debug command
-            mod.stopSyncThread();
-            mod.createSyncThread();
-            Minecraft.getInstance().player.sendMessage(new StringTextComponent("Forcing Sync..."));
-            break;
-            
             default:
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
         }
@@ -269,14 +265,13 @@ public class ClientEventHandler {
             AwayFromAuction.getLogger().info("API Key message autodected!");
             try {
                 String key = message.split("Your new API key is ")[1];
-                AwayFromAuction.getLogger().debug("API Key: " + key);
                 if (mod.validateAPIKey(key)) {
                     if (mod.setAPIKey(key)) {
                         Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("autoapikey.success"));
                     }
                 }
             } catch(Exception e) {
-                AwayFromAuction.getLogger().warn("Exception occured setting api key: " + e.getLocalizedMessage());
+                AwayFromAuction.getLogger().warn("Exception occured setting API key: " + e.getLocalizedMessage());
                 Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("autoapikey.fail"));
             }
         }

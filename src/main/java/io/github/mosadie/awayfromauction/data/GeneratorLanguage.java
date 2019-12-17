@@ -20,6 +20,7 @@ public class GeneratorLanguage extends LanguageProvider {
         addPrefixed("command.view.success", "[AfA] Viewing auction with UUID %s. Click this message to view again.");
         addPrefixed("command.supriseme.success","[AfA] Viewing a random auction, please wait...");
         addPrefixed("error.notsync","[AfA] Auctions not synced yet! Please wait about %d seconds and try again.");
+        addPrefixed("error.noauctions", "[AfA] An error occured syncing auctions! Check your logs for more info.");
         addPrefixed("command.search.help", "[AfA] Usage: /afa search [Item Name]");
         addPrefixed("command.search.itemnotfound", "[AfA] No item by that name could be found!");
         addPrefixed("command.searchuser.help", "[AfA] Usage: /afa searchuser [Username]");

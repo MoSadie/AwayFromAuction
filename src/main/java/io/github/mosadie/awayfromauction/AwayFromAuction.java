@@ -110,6 +110,14 @@ public class AwayFromAuction {
     * @param bidAuctions List of all active auctions bid on by player. 
     */
     void updateAuctions(Map<UUID, Auction> allAuctionsMap, Map<UUID, List<Auction>> playerAuctionsMap, Map<String, List<Auction>> itemAuctionsMap, List<Auction> bidAuctions) {
+        if (allAuctionsMap == null || allAuctionsMap.isEmpty()) {
+            LOGGER.error("No auctions found on the auction house!");
+            Minecraft.getInstance().enqueue(() -> {
+                Minecraft.getInstance().player.sendMessage(getTranslatedTextComponent("error.noauctions"));
+            });
+            refreshHypixelApi();
+            return;
+        }
         if(!onHypixel()) {
             LOGGER.debug("Checking for notifications to send.");
             notifyEndingSoon(playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
@@ -173,7 +181,11 @@ public class AwayFromAuction {
         if (current == null) {
             LOGGER.debug("NotifyNewBid failing: Current Auction List is Null!");
             return;
+        } else if (incoming == null) {
+            LOGGER.debug("NotifyNewBid failing: Incomming Auction list is Null!");
+            return;
         }
+
         Map<UUID, Auction> auctionMap = new HashMap<>();
         for(Auction auction : incoming) {
             auctionMap.put(auction.getAuctionUUID(), auction);
@@ -223,6 +235,14 @@ public class AwayFromAuction {
     * @param incoming New auction states for the auctions the player has bid on.
     */
     private void notifyOutbid(List<Auction> current, List<Auction> incoming) {
+        if (current == null) {
+            LOGGER.debug("NotifyOutbid failing: Current Auction List is Null!");
+            return;
+        } else if (incoming == null) {
+            LOGGER.debug("NotifyOutbid failing: Incomming Auction list is Null!");
+            return;
+        }
+
         Map<UUID, Auction> auctionMap = new HashMap<>();
         for(Auction incomingAuction : incoming) {
             auctionMap.put(incomingAuction.getAuctionUUID(), incomingAuction);
@@ -286,7 +306,6 @@ public class AwayFromAuction {
     }
     
     void setTotalCoins(long coins) {
-        LOGGER.info(String.format("%,d coins total", coins));
         this.totalCoins = coins;
     }
     
@@ -541,6 +560,15 @@ public class AwayFromAuction {
     */
     public String[] getAuctionItems() {
         return itemAuctionMap.keySet().toArray(new String[0]);
+    }
+
+    /**
+     * Checks if item string exactly matches an item up for auction
+     * @param item Auction item name
+     * @return True if at item name matches an auction item, false otherwise.
+     */
+    public boolean isAuctionItem(String item) {
+        return itemAuctionMap.keySet().contains(item.toLowerCase());
     }
     
     /**

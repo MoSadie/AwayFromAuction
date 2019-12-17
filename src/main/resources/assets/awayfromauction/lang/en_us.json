@@ -16,6 +16,7 @@
   "awayfromauction.command.usage": "[AfA] Usage:\n/afa viewall: View all auctions.\n/afa viewbids: View all auctions you've bid on.\n/afa search [Item Name]: Search the auction house for a specific item.\n/afa searchuser [Username]: Search the auction house for active auctions by a specific user.\n/afa supriseme: Shows a random auction.\n/afa view <uuid>: Shows info on an auction.\n/afa stats: Shows some various stats about the auction house.\n/afa key <key>: Manually set your Hypixel API key.\n/afa test: Test your API key.\n/afa joinhypixel: Promps you to join the Hypixel server.",
   "awayfromauction.command.view.success": "[AfA] Viewing auction with UUID %s. Click this message to view again.",
   "awayfromauction.command.view.usage": "[AfA] /afa view <auction uuid>: Pulls up detailed information on a specific auction. Use /afa search or /afa searchuser to search the auction house.",
+  "awayfromauction.error.noauctions": "[AfA] An error occured syncing auctions! Check your logs for more info.",
   "awayfromauction.error.notsync": "[AfA] Auctions not synced yet! Please wait about %d seconds and try again.",
   "awayfromauction.gui.joinhypixel.body": "You are about to leave your current server/world and join mc.hypixel.net.\n\nAre you sure you want to do this?",
   "awayfromauction.gui.joinhypixel.title": "WARNING: About to change servers!"
