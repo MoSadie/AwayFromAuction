@@ -17,11 +17,17 @@ import net.minecraft.client.gui.screen.DirtMessageScreen;
 import net.minecraft.client.gui.screen.MainMenuScreen;
 import net.minecraft.client.gui.screen.MultiplayerScreen;
 import net.minecraft.client.gui.screen.ReadBookScreen;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.realms.RealmsBridge;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraftforge.client.event.ClientChatEvent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedInEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedOutEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -39,10 +45,12 @@ public class ClientEventHandler {
         }
         
         event.setCanceled(true); // Stop the message being sent to server
-
+        
         AwayFromAuction.getLogger().debug("Command received! Command: " + event.getMessage());
         
         String[] args = event.getMessage().split(" ");
+        
+        mod.createSyncThread();
         
         if (args.length < 2) {
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
@@ -82,33 +90,33 @@ public class ClientEventHandler {
                 Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
             }
             break;
-
+            
             case "stats":
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.stats",
-                mod.getAuctions().length,
-                mod.getAuctionItems().length,
-                mod.getAuctionsByPlayer(Minecraft.getInstance().player.getUniqueID()).length,
-                mod.getBidOnAuctions().length,
-                mod.getTotalCoins()));
+            mod.getAuctions().length,
+            mod.getAuctionItems().length,
+            mod.getAuctionsByPlayer(Minecraft.getInstance().player.getUniqueID()).length,
+            mod.getBidOnAuctions().length,
+            AfAUtils.formatCoins(mod.getTotalCoins())));
             break;
-
+            
             case "searchuser":
             if (args.length != 3) {
                 Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.help"));
                 return;
             }
-                UUID userUUID = mod.getPlayerUUID(args[2]);
-                if (userUUID == null) {
-                    Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.notfound"));
-                    return;
-                }
-                Auction[] userAuctions = mod.getAuctionsByPlayer(userUUID);
-                AuctionSearchBookInfo searchBookInfo = new AuctionSearchBookInfo(userAuctions, args[2]);
-                Minecraft.getInstance().enqueue(() -> {
-                    Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(searchBookInfo));
-                });
+            UUID userUUID = mod.getPlayerUUID(args[2]);
+            if (userUUID == null) {
+                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.notfound"));
+                return;
+            }
+            Auction[] userAuctions = mod.getAuctionsByPlayer(userUUID);
+            AuctionSearchBookInfo searchBookInfo = new AuctionSearchBookInfo(userAuctions, args[2]);
+            Minecraft.getInstance().enqueue(() -> {
+                Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(searchBookInfo));
+            });
             break;
-
+            
             case "search":
             if (args.length < 3) {
                 Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.search.help"));
@@ -149,7 +157,7 @@ public class ClientEventHandler {
                 public void accept(boolean t) {
                     if (t) {
                         Minecraft.getInstance().enqueue(() -> {
-
+                            
                             //Copied from IngameMenuScreen's disconnect/quit button
                             boolean isIntegratedServer = Minecraft.getInstance().isIntegratedServerRunning();
                             boolean isConnectedToRealms = Minecraft.getInstance().isConnectedToRealms();
@@ -168,9 +176,10 @@ public class ClientEventHandler {
                             } else {
                                 Minecraft.getInstance().displayGuiScreen(new MultiplayerScreen(new MainMenuScreen()));
                             }
-
+                            
                             // Connect to Hypixel
-                            ConnectingScreen screen = new ConnectingScreen(Minecraft.getInstance().currentScreen, Minecraft.getInstance(), "mc.hypixel.net", 25565);
+                            ServerData hypixelServer = new ServerData("Hypixel","mc.hypixel.net",false);
+                            ConnectingScreen screen = new ConnectingScreen(Minecraft.getInstance().currentScreen, Minecraft.getInstance(), hypixelServer);
                             Minecraft.getInstance().displayGuiScreen(screen);
                         });
                     } else {
@@ -185,12 +194,20 @@ public class ClientEventHandler {
                 Minecraft.getInstance().displayGuiScreen(screen);
             });
             break;
-
+            
             case "viewall":
             Auction[] allAuctions = mod.getAuctions();
             AuctionsBookInfo auctionsBookInfo = new AuctionsBookInfo(allAuctions);
             Minecraft.getInstance().enqueue(() -> {
                 Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(auctionsBookInfo));
+            });
+            break;
+            
+            case "viewbids":
+            Auction[] bidAuctions = mod.getBidOnAuctions();
+            AuctionsBookInfo bidAuctionsBookInfo = new AuctionsBookInfo(bidAuctions);
+            Minecraft.getInstance().enqueue(() -> {
+                Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(bidAuctionsBookInfo));
             });
             break;
             
@@ -231,6 +248,12 @@ public class ClientEventHandler {
             });
             break;
             
+            case "forcesync": //TODO Remove debug command
+            mod.stopSyncThread();
+            mod.createSyncThread();
+            Minecraft.getInstance().player.sendMessage(new StringTextComponent("Forcing Sync..."));
+            break;
+            
             default:
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
         }
@@ -238,6 +261,7 @@ public class ClientEventHandler {
     
     @SubscribeEvent
     public void onReceiveChat(ClientChatReceivedEvent event) {
+        mod.createSyncThread();
         String message = event.getMessage().getString();
         
         // Checks to see if message is about a new API key
@@ -257,14 +281,14 @@ public class ClientEventHandler {
             }
         }
     }
-
+    
     @SubscribeEvent
-    public void onWorldLoad(WorldEvent.Load event) {
+    public void onLogin(LoggedInEvent event) {
         mod.createSyncThread();
     }
-
+    
     @SubscribeEvent
-    public void onWorldUnload(WorldEvent.Unload event) {
+    public void onLogout(LoggedOutEvent event) {
         mod.stopSyncThread();
     }
 }

@@ -86,7 +86,7 @@ public class AwayFromAuction {
     }
     
     private void setupClient(FMLClientSetupEvent event) {
-        LOGGER.debug("Registering new ClientEventHandler")
+        LOGGER.debug("Registering new ClientEventHandler");
         MinecraftForge.EVENT_BUS.register(new ClientEventHandler(this));
         
         if (!Config.HYPIXEL_API_KEY.get().equals("")) {
@@ -103,30 +103,35 @@ public class AwayFromAuction {
     }
     
     /**
-     * Update the auction caches with the specified maps.
-     * @param allAuctionsMap Map of all auctions. Key is Auction UUID.
-     * @param playerAuctionsMap Map of all auctions. Key is Auction Owner UUID.
-     * @param itemAuctionsMap Map of all auctions. Key is Auction Item Name.
-     * @param bidAuctions List of all active auctions bid on by player. 
-     */
+    * Update the auction caches with the specified maps.
+    * @param allAuctionsMap Map of all auctions. Key is Auction UUID.
+    * @param playerAuctionsMap Map of all auctions. Key is Auction Owner UUID.
+    * @param itemAuctionsMap Map of all auctions. Key is Auction Item Name.
+    * @param bidAuctions List of all active auctions bid on by player. 
+    */
     void updateAuctions(Map<UUID, Auction> allAuctionsMap, Map<UUID, List<Auction>> playerAuctionsMap, Map<String, List<Auction>> itemAuctionsMap, List<Auction> bidAuctions) {
-        LOGGER.debug("Checking for notifications to send.");
-        notifyEndingSoon(playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
-        notifyNewBid(this.playerAuctionMap.get(Minecraft.getInstance().player.getUniqueID()), playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
-        notifyOutbid(this.bidAuctions, bidAuctions);
-        
+        if(!onHypixel()) {
+            LOGGER.debug("Checking for notifications to send.");
+            notifyEndingSoon(playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
+            notifyNewBid(this.playerAuctionMap.get(Minecraft.getInstance().player.getUniqueID()), playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
+            notifyOutbid(this.bidAuctions, bidAuctions);
+        }
         LOGGER.debug("Updating auction cache!");
         this.allAuctions = allAuctionsMap;
         this.playerAuctionMap = playerAuctionsMap;
         this.itemAuctionMap = itemAuctionsMap;
         this.bidAuctions = bidAuctions;
     }
-
+    
     /**
-     * Notifies the player for each auction that is ending in the next 5 minutes.
-     * @param auctionsToCheck List of auctions to check.
-     */
+    * Notifies the player for each auction that is ending in the next 5 minutes.
+    * @param auctionsToCheck List of auctions to check.
+    */
     private void notifyEndingSoon(List<Auction> auctionsToCheck) {
+        if (auctionsToCheck == null) {
+            LOGGER.debug("NotifyEndingSoon Exiting because Null List");
+            return;
+        }
         for(Auction auction : auctionsToCheck) {
             if (auction.getEnd().getTime()-auction.getSyncTimestamp().getTime() < (5*60)) {
                 LOGGER.info("Auction ending soon: " + auction.getAuctionUUID());
@@ -134,42 +139,41 @@ public class AwayFromAuction {
             }
         }
     }
-
+    
     /**
-     * Creates a user-friendly ITextComponent to be shown to the player about an auction that is ending soon.
-     * @param auction The auction that is ending soon.
-     * @return An ITextComponent to be shown to the player.
-     */
+    * Creates a user-friendly ITextComponent to be shown to the player about an auction that is ending soon.
+    * @param auction The auction that is ending soon.
+    * @return An ITextComponent to be shown to the player.
+    */
     private ITextComponent createEndingSoonText(Auction auction) {
         StringTextComponent root = new StringTextComponent("[AfA] Your auction for ");
         StringTextComponent itemName = new StringTextComponent(auction.getItemName());
         itemName.getStyle()
-                    .setUnderlined(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
-                    .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
+        .setUnderlined(true)
+        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
+        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
         long time = auction.getEnd().getTime()-auction.getSyncTimestamp().getTime();
         StringTextComponent endingTime = new StringTextComponent(" is ending in about " + time + "second" + (time > 1 ? "s" : "") + "! ");
-        StringTextComponent hypixelLink = new StringTextComponent("CLICK HERE");
-        hypixelLink.getStyle()
-                    .setUnderlined(true)
-                    .setBold(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
-                    .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to join the Hypixel server!")));
-        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server now!");
+        
+        ITextComponent hypixelLink = createHypixelLink();
+        
         root.appendSibling(itemName);
         root.appendSibling(endingTime);
         root.appendSibling(hypixelLink);
-        root.appendSibling(ending);
-
+        
         return root;
     }
-
+    
     /**
-     * Notifies the player for every auction they own that has a new bid since last sync.
-     * @param current Current list of auction states for all owned auctions.
-     * @param incoming New list of auction states for all owned auctions.
-     */
+    * Notifies the player for every auction they own that has a new bid since last sync.
+    * @param current Current list of auction states for all owned auctions.
+    * @param incoming New list of auction states for all owned auctions.
+    */
     private void notifyNewBid(List<Auction> current, List<Auction> incoming) {
+        if (current == null) {
+            LOGGER.debug("NotifyNewBid failing: Current Auction List is Null!");
+            return;
+        }
         Map<UUID, Auction> auctionMap = new HashMap<>();
         for(Auction auction : incoming) {
             auctionMap.put(auction.getAuctionUUID(), auction);
@@ -179,84 +183,77 @@ public class AwayFromAuction {
                 Auction other = auctionMap.get(auction.getAuctionUUID());
                 if (other.getHighestBidAmount() > auction.getHighestBidAmount()) {
                     LOGGER.info("New bid on auction " + auction.getAuctionUUID());
-                    Minecraft.getInstance().player.sendMessage(createNewBidText(auction, other));
+                    Minecraft.getInstance().player.sendMessage(createNewBidText(other));
                 }
             }
         }
     }
-
+    
     /**
-     * Creates a user-friendly ITextComponent to be shown to the player about a new bid on their auction.
-     * @param current Current auction state.
-     * @param other New auction state.
-     * @return An ITextComponent to show to the player.
-     */
-    private ITextComponent createNewBidText(Auction current, Auction other) {
+    * Creates a user-friendly ITextComponent to be shown to the player about a new bid on their auction.
+    * @param auction The auction state of the auction.
+    * @return An ITextComponent to show to the player.
+    */
+    private ITextComponent createNewBidText(Auction auction) {
         StringTextComponent root = new StringTextComponent("[AfA] There is a new bid on your auction for the ");
-
-        StringTextComponent itemName = new StringTextComponent(current.getItemName());
+        
+        StringTextComponent itemName = new StringTextComponent(auction.getItemName());
         itemName.getStyle()
-                    .setUnderlined(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + current.getAuctionUUID()))
-                    .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
-
-        int newBid = other.getHighestBidAmount();
-        String otherUser = other.getAFA().getPlayerName(other.getHighestBid().getBidderUUID());
-        StringTextComponent outbidBy = new StringTextComponent(" for " + newBid + "coin" + (newBid > 1 ? "s" : "") + " by " + otherUser + "! ");
-
-        StringTextComponent hypixelLink = new StringTextComponent("CLICK HERE");
-        hypixelLink.getStyle()
-                    .setUnderlined(true)
-                    .setBold(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
-                    .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to join the Hypixel server!")));
-        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server!");
-        hypixelLink.appendSibling(ending);
-
+        .setUnderlined(true)
+        .setColor(AfAUtils.getColorFromTier(auction.getTier()))
+        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
+        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
+        
+        int newBid = auction.getHighestBidAmount();
+        String otherUser = auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID());
+        StringTextComponent bidInfo = new StringTextComponent(" for " + AfAUtils.formatCoins(newBid) + " coin" + (newBid > 1 ? "s" : "") + " by " + otherUser + "! ");
+        
+        ITextComponent hypixelLink = createHypixelLink();
+        
         root.appendSibling(itemName);
-        root.appendSibling(outbidBy);
-        if (!onHypixel()) root.appendSibling(hypixelLink);
-
+        root.appendSibling(bidInfo);
+        root.appendSibling(hypixelLink);
+        
         return root;
     }
-
+    
     /**
-     * Notifies the player for every auction they have been outbid on.
-     * @param current Current auction states for the auctions the player has bid on.
-     * @param incoming New auction states for the auctions the player has bid on.
-     */
+    * Notifies the player for every auction they have been outbid on.
+    * @param current Current auction states for the auctions the player has bid on.
+    * @param incoming New auction states for the auctions the player has bid on.
+    */
     private void notifyOutbid(List<Auction> current, List<Auction> incoming) {
         Map<UUID, Auction> auctionMap = new HashMap<>();
         for(Auction incomingAuction : incoming) {
             auctionMap.put(incomingAuction.getAuctionUUID(), incomingAuction);
         }
-
+        
         for(Auction currentAuction : current) {
             if (auctionMap.containsKey(currentAuction.getAuctionUUID())) {
                 Auction newAuction = auctionMap.get(currentAuction.getAuctionUUID());
-                if (currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount() && newAuction.getHighestBid().getBidderUUID() != Minecraft.getInstance().player.getUniqueID()) {
-                    LOGGER.info("Outbid on auction " + currentAuction.getAuctionUUID());
+                if (currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount() && newAuction.getHighestBid().getBidderUUID().equals(Minecraft.getInstance().player.getUniqueID())) {
                     Minecraft.getInstance().player.sendMessage(createOutbidText(currentAuction, newAuction));
                 }
             }
         }
     }
-
+    
     /**
-     * Creates a user-friendly ITextComponent to be shown to the player about being outbid on an auction.
-     * @param current Current auction state.
-     * @param other New auction state.
-     * @return An ITextComponent to show to the player
-     */
+    * Creates a user-friendly ITextComponent to be shown to the player about being outbid on an auction.
+    * @param current Current auction state.
+    * @param other New auction state.
+    * @return An ITextComponent to show to the player
+    */
     private ITextComponent createOutbidText(Auction current, Auction other) {
         StringTextComponent root = new StringTextComponent("[AfA] You have been outbid on the auction for ");
-
+        
         StringTextComponent itemName = new StringTextComponent(current.getItemName());
         itemName.getStyle()
-                    .setUnderlined(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + current.getAuctionUUID()))
-                    .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
-
+        .setUnderlined(true)
+        .setColor(AfAUtils.getColorFromTier(other.getTier()))
+        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + current.getAuctionUUID()))
+        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
+        
         Bid yourBid = null;
         for(Bid bid : current.getBids()) {
             if (bid.getBidderUUID().equals(Minecraft.getInstance().player.getUniqueID())){
@@ -266,33 +263,39 @@ public class AwayFromAuction {
         }
         long diff = other.getHighestBidAmount() - (yourBid != null ? yourBid.getAmount() : 0);
         String otherUser = other.getAFA().getPlayerName(other.getHighestBid().getBidderUUID());
-        StringTextComponent outbidBy = new StringTextComponent(" by " + diff + "coin" + (diff > 1 ? "s" : "") + " by " + otherUser + "! ");
-
-        StringTextComponent hypixelLink = new StringTextComponent("CLICK HERE");
-        hypixelLink.getStyle()
-                    .setUnderlined(true)
-                    .setBold(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
-                    .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to join the Hypixel server!")));
-        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server now!");
-        hypixelLink.appendSibling(ending);
+        StringTextComponent outbidBy = new StringTextComponent(" by " + AfAUtils.formatCoins(diff) + " coin" + (diff > 1 ? "s" : "") + " by " + otherUser + "! ");
+        ITextComponent hypixelLink = createHypixelLink();
         root.appendSibling(itemName);
         root.appendSibling(outbidBy);
-        if (!onHypixel()) root.appendSibling(hypixelLink);
-
+        root.appendSibling(hypixelLink);
+        
         return root;
     }
     
+    private ITextComponent createHypixelLink() {
+        if (onHypixel()) return new StringTextComponent("");
+        StringTextComponent hypixelLink = new StringTextComponent("CLICK HERE");
+        hypixelLink.getStyle()
+        .setUnderlined(true)
+        .setBold(true)
+        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
+        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to join the Hypixel server!")));
+        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server!");
+        hypixelLink.appendSibling(ending);
+        return hypixelLink;
+    }
+    
     void setTotalCoins(long coins) {
+        LOGGER.info(String.format("%,d coins total", coins));
         this.totalCoins = coins;
     }
     
     /**
-     * Safely validates if the apiKey is in the correct form.
-     * In this case that is UUID.
-     * @param apiKey The apiKey to validate.
-     * @return True if the apiKey is in the correct form, false otherwise.
-     */
+    * Safely validates if the apiKey is in the correct form.
+    * In this case that is UUID.
+    * @param apiKey The apiKey to validate.
+    * @return True if the apiKey is in the correct form, false otherwise.
+    */
     public boolean validateAPIKey(String apiKey) {
         try {
             UUID.fromString(apiKey);
@@ -303,11 +306,11 @@ public class AwayFromAuction {
     }
     
     /**
-     * Tests the API key using the Hypixel API.
-     * It is recommended to use {@link #validateAPIKey(String)} first to validate the key first.
-     * @param apiKeyString The Hypixel API key to test.
-     * @return True if the API key works, false otherwise.
-     */
+    * Tests the API key using the Hypixel API.
+    * It is recommended to use {@link #validateAPIKey(String)} first to validate the key first.
+    * @param apiKeyString The Hypixel API key to test.
+    * @return True if the API key works, false otherwise.
+    */
     public boolean testAPIKey(String apiKeyString) {
         if (!validateAPIKey(apiKeyString)) {
             LOGGER.warn("Invalid API key attempted to be tested! Key: " + apiKeyString);
@@ -327,10 +330,10 @@ public class AwayFromAuction {
     }
     
     /**
-     * Sets the Hypixel API key in the config file and refreshes our connection to the HypixelAPI
-     * @param apiKey The new HypixelAPI key to use.
-     * @return True if the key works and nothing goes wrong refreshing our connection, false otherwise.
-     */
+    * Sets the Hypixel API key in the config file and refreshes our connection to the HypixelAPI
+    * @param apiKey The new HypixelAPI key to use.
+    * @return True if the key works and nothing goes wrong refreshing our connection, false otherwise.
+    */
     public boolean setAPIKey(String apiKey) {
         if (testAPIKey(apiKey)) {
             LOGGER.info("Setting new Hypixel API key");
@@ -341,10 +344,10 @@ public class AwayFromAuction {
     }
     
     /**
-     * Refreshes the HypixelAPI object we use to connect to the Hypixel API.
-     * Called when the API key is loaded/changed.
-     * @return True if the key works, false otherwise.
-     */
+    * Refreshes the HypixelAPI object we use to connect to the Hypixel API.
+    * Called when the API key is loaded/changed.
+    * @return True if the key works, false otherwise.
+    */
     boolean refreshHypixelApi() {
         if (testAPIKey(Config.HYPIXEL_API_KEY.get())) {
             hypixelApi = new HypixelAPI(UUID.fromString(Config.HYPIXEL_API_KEY.get()));
@@ -357,8 +360,8 @@ public class AwayFromAuction {
     }
     
     /**
-     * @return True if connected to the Hypixel Minecraft server, false otherwise.
-     */
+    * @return True if connected to the Hypixel Minecraft server, false otherwise.
+    */
     public boolean onHypixel() {
         try {
             return Minecraft.getInstance().getCurrentServerData().serverIP.contains(".hypixel.net");
@@ -370,10 +373,10 @@ public class AwayFromAuction {
     private Map<UUID, String> nameCache;
     
     /**
-     * Converts a player UUID to their Username.
-     * @param uuid UUID of a player
-     * @return Their current Username or "ERROR"
-     */
+    * Converts a player UUID to their Username.
+    * @param uuid UUID of a player
+    * @return Their current Username or "ERROR"
+    */
     public String getPlayerName(UUID uuid) {
         if (nameCache.containsKey(uuid)) {
             return nameCache.get(uuid);
@@ -419,10 +422,10 @@ public class AwayFromAuction {
     private Map<String, UUID> uuidCache;
     
     /**
-     * Converts a player Username to a UUID.
-     * @param name Username of a player.
-     * @return Their UUID or null.
-     */
+    * Converts a player Username to a UUID.
+    * @param name Username of a player.
+    * @return Their UUID or null.
+    */
     public UUID getPlayerUUID(String name) {
         name = name.toLowerCase();
         if(uuidCache.containsKey(name)) {
@@ -451,10 +454,10 @@ public class AwayFromAuction {
     }
     
     /**
-     * Gets an auction's current status (as of last sync) by its UUID.
-     * @param auctionUUID The UUID of the auction to get state of.
-     * @return The specified auction's current state or a special Error Auction.
-     */
+    * Gets an auction's current status (as of last sync) by its UUID.
+    * @param auctionUUID The UUID of the auction to get state of.
+    * @return The specified auction's current state or a special Error Auction.
+    */
     public Auction getAuction(UUID auctionUUID) {
         if (allAuctions.containsKey(auctionUUID)) {
             return allAuctions.get(auctionUUID);
@@ -490,10 +493,10 @@ public class AwayFromAuction {
     }
     
     /**
-     * Gets all auctions owner by a player.
-     * @param playerUUID The UUID of the auction owner.
-     * @return Array of current auction states of all auctions owner by the specified player.
-     */
+    * Gets all auctions owner by a player.
+    * @param playerUUID The UUID of the auction owner.
+    * @return Array of current auction states of all auctions owner by the specified player.
+    */
     public Auction[] getAuctionsByPlayer(UUID playerUUID) {
         if (playerAuctionMap.containsKey(playerUUID)) {
             return playerAuctionMap.get(playerUUID).toArray(new Auction[0]);
@@ -527,24 +530,24 @@ public class AwayFromAuction {
     }
     
     /**
-     * @return An array containing all currently known auctions' states.
-     */
+    * @return An array containing all currently known auctions' states.
+    */
     public Auction[] getAuctions() {
         return allAuctions.values().toArray(new Auction[0]);
     }
     
     /**
-     * @return An array of Strings with all currently known items up for auction.
-     */
+    * @return An array of Strings with all currently known items up for auction.
+    */
     public String[] getAuctionItems() {
         return itemAuctionMap.keySet().toArray(new String[0]);
     }
     
     /**
-     * Gets all known auction items that contain the specified string.
-     * @param filter The string to filter the results.
-     * @return Array with all currently known auction items that contain the filter string.
-     */
+    * Gets all known auction items that contain the specified string.
+    * @param filter The string to filter the results.
+    * @return Array with all currently known auction items that contain the filter string.
+    */
     public String[] getAuctionItems(String filter) {
         List<String> result = new ArrayList<>();
         for(String item : itemAuctionMap.keySet()) {
@@ -560,10 +563,10 @@ public class AwayFromAuction {
     }
     
     /**
-     * Gets all auctions that contain the specified item.
-     * @param itemName The name of the item being auctioned.
-     * @return Array of current auction states for all auctions of that item.
-     */
+    * Gets all auctions that contain the specified item.
+    * @param itemName The name of the item being auctioned.
+    * @return Array of current auction states for all auctions of that item.
+    */
     public Auction[] getAuctionsByItem(String itemName) {
         if (itemName == null) {
             LOGGER.warn("ItemName was null! Returning empty array!");
@@ -577,23 +580,23 @@ public class AwayFromAuction {
     }
     
     /**
-     * @return Array of current auction states for all active auctions currently bid on by the player.
-     */
+    * @return Array of current auction states for all active auctions currently bid on by the player.
+    */
     public Auction[] getBidOnAuctions() {
         return bidAuctions.toArray(new Auction[0]);
     }
     
     /**
-     * @return The current total number of coins sitting in the auction house in bids.
-     */
+    * @return The current total number of coins sitting in the auction house in bids.
+    */
     public long getTotalCoins() {
         return totalCoins;
     }
     
     /**
-     * Refreshes the HypixelAPI object if it's not been initialized yet.
-     * @return The current/new HypixelAPI object or null if something went wrong.
-     */
+    * Refreshes the HypixelAPI object if it's not been initialized yet.
+    * @return The current/new HypixelAPI object or null if something went wrong.
+    */
     HypixelAPI getOrRefreshHypixelAPI() {
         if (hypixelApi == null) {
             if (!refreshHypixelApi()) {
@@ -605,9 +608,9 @@ public class AwayFromAuction {
     }
     
     /**
-     * Sorts a singular auction into all the various maps and lists.
-     * @param auction The auction to sort.
-     */
+    * Sorts a singular auction into all the various maps and lists.
+    * @param auction The auction to sort.
+    */
     private void sortAuction(Auction auction) {
         allAuctions.put(auction.getAuctionUUID(), auction);
         
@@ -630,13 +633,15 @@ public class AwayFromAuction {
         if (syncThread == null) {
             LOGGER.debug("Sync thread created!");
             syncThread = new SyncThread(this);
+            LOGGER.info("Starting sync thread");
             syncThread.start();
         }
     }
     
     void stopSyncThread() {
         if (syncThread != null) {
-            LOGGER.debug("Sync thread stopped!");
+            LOGGER.debug("Stopping sync thread");
+            syncThread.stopFlag();
             syncThread.interrupt();
             syncThread = null;
         }

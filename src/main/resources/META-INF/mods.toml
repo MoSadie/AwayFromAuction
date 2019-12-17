@@ -18,7 +18,7 @@ version="${file.jarVersion}" #mandatory
  # A display name for the mod
 displayName="Away From Auction" #mandatory
 # A URL to query for updates for this mod. See the JSON update specification <here>
-updateJSONURL="https://github.com/MoSadie/AwayFromAuction/blob/master/updateJSON.json" #optional
+updateJSONURL="https://raw.githubusercontent.com/MoSadie/AwayFromAuction/master/updateJSON.json" #optional
 # A URL for the "homepage" for this mod, displayed in the mod UI
 displayURL="https://github.com/MoSadie/AwayFromAuction" #optional
 # A file name (in the root of the mod JAR) containing a logo for display

@@ -19,18 +19,18 @@ public class AuctionsBookInfo implements IBookInfo {
     }
     
     /**
-     * @return The total number of pages in the book.
-     */
+    * @return The total number of pages in the book.
+    */
     @Override
     public int func_216918_a() {
         return auctions.length;
     }
     
     /**
-     * Gets the content of a specified page.
-     * @param page The page (zero indexed) to get content for.
-     * @return An ITextComponent with the content for the specified page.
-     */
+    * Gets the content of a specified page.
+    * @param page The page (zero indexed) to get content for.
+    * @return An ITextComponent with the content for the specified page.
+    */
     @Override
     public ITextComponent func_216915_a(int page) {
         StringTextComponent root = new StringTextComponent("Auction Details:\n");
@@ -44,11 +44,11 @@ public class AuctionsBookInfo implements IBookInfo {
         .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
         
         StringTextComponent owner = new StringTextComponent("Auction Owner: ");
-        StringTextComponent ownerLink = new StringTextComponent(auction.getItemName());
+        StringTextComponent ownerLink = new StringTextComponent(auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
         ownerLink.getStyle()
         .setUnderlined(true)
-        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getItemName()))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view all auctions by " + auction.getItemName())));
+        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
+        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view all auctions by " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
         owner.appendSibling(ownerLink);
         owner.appendText("\n\n");
         

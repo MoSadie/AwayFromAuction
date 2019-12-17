@@ -49,12 +49,15 @@ public class AfAUtils {
     
     public static boolean bidsContainUUID(Bid[] bids, UUID uuid) {
         if (bids == null || bids.length == 0) {
+            if (bids == null) AwayFromAuction.getLogger().warn("Null bids!");
             return false;
         }
         
         for (Bid bid : bids) {
-            if (bid.getBidderUUID().equals(uuid))
-            return true;
+            if (bid.getBidderUUID().equals(uuid)){
+                AwayFromAuction.getLogger().debug("BID FOUND AUCTION " + bid.getAuctionUUID().toString());
+                return true;
+            }
         }
         
         return false;
@@ -67,19 +70,19 @@ public class AfAUtils {
             
             case 410:
             return "minecraft:prismarine_crystals";
-
+            
             case 411:
             return "minecraft:rabbit";
             
             case 414:
             return "minecraft:rabbit_foot";
-
+            
             case 415:
             return "minecraft:rabbit_hide";
             
             case 423:
             return "minecraft:mutton";
-
+            
             default:
             String regItemName = ItemIntIDToString.getItem(itemId);
             String regBlockName = BlockStateFlatteningMap.updateId(itemId);
@@ -90,6 +93,11 @@ public class AfAUtils {
                 return regBlockName;
             } else {
                 return regItemName;
-            }}
+            }
         }
     }
+
+    public static String formatCoins(long coins) {
+        return String.format("%,d", coins);
+    }
+}

@@ -18,6 +18,7 @@ import net.minecraft.client.Minecraft;
 
 public class SyncThread extends Thread {
     private final AwayFromAuction afa;
+    private boolean stopFlag = false;
     
     public SyncThread(AwayFromAuction mod) {
         this.afa = mod;
@@ -25,7 +26,7 @@ public class SyncThread extends Thread {
     
     @Override
     public void run() {
-        while (!this.isInterrupted() && Minecraft.getInstance() != null) {
+        while (!this.isInterrupted() && !stopFlag && Minecraft.getInstance() != null) {
             try {
                 Thread.sleep(Config.GENERAL_REFRESH_DELAY.get() * 1000);
                 AwayFromAuction.getLogger().info("Syncing with Hypixel Skyblock Auction House");
@@ -38,9 +39,9 @@ public class SyncThread extends Thread {
     }
     
     /**
-     * Syncs all active auction data from the Hypixel API.
-     * Sorts that data into multiple groups and calls {@link AwayFromAuction#updateAuctions(Map, Map, Map, List)} to update the auction cache.
-     */
+    * Syncs all active auction data from the Hypixel API.
+    * Sorts that data into multiple groups and calls {@link AwayFromAuction#updateAuctions(Map, Map, Map, List)} to update the auction cache.
+    */
     private void sync() {
         if (Minecraft.getInstance().player == null) {
             return;
@@ -105,10 +106,14 @@ public class SyncThread extends Thread {
             }
             afa.updateAuctions(allAuctions, playerAuctionMap, itemAuctionMap, bidAuctions);
             afa.setTotalCoins(totalCoins);
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException | NullPointerException e) {
             AwayFromAuction.getLogger().warn("An exception occured while attempting to sync auction details: " + e.getLocalizedMessage());
             AwayFromAuction.getLogger().catching(e);
         }
+    }
+    
+    public void stopFlag() {
+        stopFlag = true;
     }
     
 }
