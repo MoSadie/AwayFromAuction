@@ -13,7 +13,7 @@ public class GeneratorLanguage extends LanguageProvider {
     @Override
     protected void addTranslations() {
         addPrefixed("autoapikey.success", "[AfA] Sucessfully grabbed your Hypixel API key from chat!");
-        addPrefixed("command.usage", "[AfA] Usage: \n/afa key <key>: to set your Hypixel API key.\n/afa test: Test your API key.\n/afa view <uuid>: Shows info on an auction.\n/afa viewall: View all auctions.\n/afa supriseme: Shows a random auction.\n/afa search [Item Name]: Search the auction house for a specific item.\n/afa searchuser [Username]: Search the auction house for auctions by a specific user.\n/afa joinhypixel: Promps you to join the Hypixel server.");
+        addPrefixed("command.usage", "[AfA] Usage: \n/afa key <key>: to set your Hypixel API key.\n/afa test: Test your API key.\n/afa view <uuid>: Shows info on an auction.\n/afa viewall: View all auctions.\n/afa viewbids: View all auctions you've bid on.\n/afa supriseme: Shows a random auction.\n/afa search [Item Name]: Search the auction house for a specific item.\n/afa searchuser [Username]: Search the auction house for auctions by a specific user.\n/afa joinhypixel: Promps you to join the Hypixel server.");
         addPrefixed("command.key.success", "[AfA] Sucessfully saved your Hypixel API key!");
         addPrefixed("command.key.fail", "[AfA] Failed to save your Hypixel API key! Please try again!");
         addPrefixed("command.view.usage", "[AfA] /afa view <auction uuid>: Pulls up detailed information on a specific auction. Use /afa search or /afa searchuser to search the auction house.");
@@ -24,7 +24,7 @@ public class GeneratorLanguage extends LanguageProvider {
         addPrefixed("command.search.itemnotfound", "[AfA] No item by that name could be found!");
         addPrefixed("command.searchuser.help", "[AfA] Usage: /afa searchuser [Username]");
         addPrefixed("command.searchuser.notfound", "[AfA] No user by that username could be found!");
-        addPrefixed("command.stats", "[AfA] Current Auction House Stats:\n* Number of currently active auctions: %d\n* Number of unique items up for auction (incl. reforges): %d\n* Number of active auctions you own: %d\n* Number of active auctions you've bid on: %d\n* Number of coins currently in bids in the auction house: %d");
+        addPrefixed("command.stats", "[AfA] Current Auction House Stats:\n* Number of currently active auctions: %d\n* Number of unique items up for auction (incl. reforges): %d\n* Number of active auctions you own: %d\n* Number of active auctions you've bid on: %d\n* Number of coins currently in bids in the auction house: %s");
         addPrefixed("apitest.start", "[AfA] Testing your Hypixel API key..");
         addPrefixed("apitest.succeed", "[AfA] Your Hypixel API key works!");
         addPrefixed("apitest.fail", "[AfA] You Hypixel API key didn't work. Make sure you set it correctly, and try again!");

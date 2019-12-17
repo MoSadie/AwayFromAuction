@@ -36,11 +36,11 @@ public class AuctionsBookInfo implements IBookInfo {
         .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
         
         StringTextComponent owner = new StringTextComponent("Auction Owner: ");
-        StringTextComponent ownerLink = new StringTextComponent(auction.getItemName());
+        StringTextComponent ownerLink = new StringTextComponent(auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
         ownerLink.getStyle()
         .setUnderlined(true)
-        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getItemName()))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view all auctions by " + auction.getItemName())));
+        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
+        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view all auctions by " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
         owner.appendSibling(ownerLink);
         owner.appendText("\n\n");
         

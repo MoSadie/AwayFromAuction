@@ -17,11 +17,17 @@ import net.minecraft.client.gui.screen.DirtMessageScreen;
 import net.minecraft.client.gui.screen.MainMenuScreen;
 import net.minecraft.client.gui.screen.MultiplayerScreen;
 import net.minecraft.client.gui.screen.ReadBookScreen;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.realms.RealmsBridge;
+import net.minecraft.util.text.StringTextComponent;
 import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraft.util.text.event.ClickEvent;
 import net.minecraftforge.client.event.ClientChatEvent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedInEvent;
+import net.minecraftforge.client.event.ClientPlayerNetworkEvent.LoggedOutEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
+import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedOutEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
@@ -47,6 +53,8 @@ public class ClientEventHandler {
         if (!args[0].equalsIgnoreCase("/afa")) {
             return;
         }
+
+        mod.createSyncThread();
         
         if (args.length < 2) {
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
@@ -93,7 +101,7 @@ public class ClientEventHandler {
                 mod.getAuctionItems().length,
                 mod.getAuctionsByPlayer(Minecraft.getInstance().player.getUniqueID()).length,
                 mod.getBidOnAuctions().length,
-                mod.getTotalCoins()));
+                AfAUtils.formatCoins(mod.getTotalCoins())));
             break;
 
             case "searchuser":
@@ -174,7 +182,8 @@ public class ClientEventHandler {
                             }
 
                             // Connect to Hypixel
-                            ConnectingScreen screen = new ConnectingScreen(Minecraft.getInstance().currentScreen, Minecraft.getInstance(), "mc.hypixel.net", 25565);
+                            ServerData hypixelServer = new ServerData("Hypixel","mc.hypixel.net",false);
+                            ConnectingScreen screen = new ConnectingScreen(Minecraft.getInstance().currentScreen, Minecraft.getInstance(), hypixelServer);
                             Minecraft.getInstance().displayGuiScreen(screen);
                         });
                     } else {
@@ -195,6 +204,14 @@ public class ClientEventHandler {
             AuctionsBookInfo auctionsBookInfo = new AuctionsBookInfo(allAuctions);
             Minecraft.getInstance().enqueue(() -> {
                 Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(auctionsBookInfo));
+            });
+            break;
+
+            case "viewbids":
+            Auction[] bidAuctions = mod.getBidOnAuctions();
+            AuctionsBookInfo bidAuctionsBookInfo = new AuctionsBookInfo(bidAuctions);
+            Minecraft.getInstance().enqueue(() -> {
+                Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(bidAuctionsBookInfo));
             });
             break;
             
@@ -234,6 +251,12 @@ public class ClientEventHandler {
                 Minecraft.getInstance().displayGuiScreen(new ReadBookScreen(auctionBookInfo));
             });
             break;
+
+            case "forcesync": //TODO Remove debug command
+            mod.stopSyncThread();
+            mod.createSyncThread();
+            Minecraft.getInstance().player.sendMessage(new StringTextComponent("Forcing Sync..."));
+            break;
             
             default:
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
@@ -242,6 +265,7 @@ public class ClientEventHandler {
     
     @SubscribeEvent
     public void onReceiveChat(ClientChatReceivedEvent event) {
+        mod.createSyncThread();
         String message = event.getMessage().getString();
         
         if (message.startsWith("Your new API key is ") && mod.onHypixel() ) {
@@ -262,12 +286,12 @@ public class ClientEventHandler {
     }
 
     @SubscribeEvent
-    public void onWorldLoad(WorldEvent.Load event) {
+    public void onLogin(LoggedInEvent event) {
         mod.createSyncThread();
     }
 
     @SubscribeEvent
-    public void onWorldUnload(WorldEvent.Unload event) {
+    public void onLogout(LoggedOutEvent event) {
         mod.stopSyncThread();
     }
 }

@@ -96,9 +96,12 @@ public class AwayFromAuction {
     }
     
     void updateAuctions(Map<UUID, Auction> allAuctionsMap, Map<UUID, List<Auction>> playerAuctionsMap, Map<String, List<Auction>> itemAuctionsMap, List<Auction> bidAuctions) {
-        notifyEndingSoon(playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
-        notifyNewBid(this.playerAuctionMap.get(Minecraft.getInstance().player.getUniqueID()), playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
-        notifyOutbid(this.bidAuctions, bidAuctions);
+        // if (!onHypixel()) {
+            LOGGER.debug(Minecraft.getInstance().player.getUniqueID() + " -> " + (playerAuctionsMap.containsKey(Minecraft.getInstance().player.getUniqueID()) ? playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()).size() : "Not Found"));
+            notifyEndingSoon(playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
+            notifyNewBid(this.playerAuctionMap.get(Minecraft.getInstance().player.getUniqueID()), playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
+            notifyOutbid(this.bidAuctions, bidAuctions);
+        // }
         this.allAuctions = allAuctionsMap;
         this.playerAuctionMap = playerAuctionsMap;
         this.itemAuctionMap = itemAuctionsMap;
@@ -106,6 +109,10 @@ public class AwayFromAuction {
     }
 
     private void notifyEndingSoon(List<Auction> auctionsToCheck) {
+        if (auctionsToCheck == null) {
+            LOGGER.debug("NotifyEndingSoon Exiting because Null List");
+            return;
+        }
         for(Auction auction : auctionsToCheck) {
             if (auction.getEnd().getTime()-auction.getSyncTimestamp().getTime() < (5*60)) {
                 Minecraft.getInstance().player.sendMessage(createEndingSoonText(auction));
@@ -122,22 +129,21 @@ public class AwayFromAuction {
                     .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
         long time = auction.getEnd().getTime()-auction.getSyncTimestamp().getTime();
         StringTextComponent endingTime = new StringTextComponent(" is ending in about " + time + "second" + (time > 1 ? "s" : "") + "! ");
-        StringTextComponent hypixelLink = new StringTextComponent("CLICK HERE");
-        hypixelLink.getStyle()
-                    .setUnderlined(true)
-                    .setBold(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
-                    .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to join the Hypixel server!")));
-        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server now!");
+        
+        ITextComponent hypixelLink = createHypixelLink();
+
         root.appendSibling(itemName);
         root.appendSibling(endingTime);
         root.appendSibling(hypixelLink);
-        root.appendSibling(ending);
 
         return root;
     }
 
     private void notifyNewBid(List<Auction> current, List<Auction> incoming) {
+        if (current == null) {
+            LOGGER.debug("NotifyNewBid failing: Current Auction List is Null!");
+            return;
+        }
         Map<UUID, Auction> auctionMap = new HashMap<>();
         for(Auction auction : incoming) {
             auctionMap.put(auction.getAuctionUUID(), auction);
@@ -146,33 +152,29 @@ public class AwayFromAuction {
             if (auctionMap.containsKey(auction.getAuctionUUID())) {
                 Auction other = auctionMap.get(auction.getAuctionUUID());
                 if (other.getHighestBidAmount() > auction.getHighestBidAmount()) {
-                    Minecraft.getInstance().player.sendMessage(createNewBidText(auction, other));
+                    Minecraft.getInstance().player.sendMessage(createNewBidText(other));
                 }
             }
         }
     }
 
-    private ITextComponent createNewBidText(Auction current, Auction other) {
+    private ITextComponent createNewBidText(Auction auction) {
         StringTextComponent root = new StringTextComponent("[AfA] There is a new bid on your auction for the ");
-        StringTextComponent itemName = new StringTextComponent(current.getItemName());
+        StringTextComponent itemName = new StringTextComponent(auction.getItemName());
         itemName.getStyle()
                     .setUnderlined(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + current.getAuctionUUID()))
+                    .setColor(AfAUtils.getColorFromTier(auction.getTier()))
+                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
                     .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
-        int newBid = other.getHighestBidAmount();
-        String otherUser = other.getAFA().getPlayerName(other.getHighestBid().getBidderUUID());
-        StringTextComponent outbidBy = new StringTextComponent(" for " + newBid + "coin" + (newBid > 1 ? "s" : "") + " by " + otherUser + "! ");
-        StringTextComponent hypixelLink = new StringTextComponent("CLICK HERE");
-        hypixelLink.getStyle()
-                    .setUnderlined(true)
-                    .setBold(true)
-                    .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
-                    .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to join the Hypixel server!")));
-        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server!");
+        int newBid = auction.getHighestBidAmount();
+        String otherUser = auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID());
+        StringTextComponent outbidBy = new StringTextComponent(" for " + AfAUtils.formatCoins(newBid) + " coin" + (newBid > 1 ? "s" : "") + " by " + otherUser + "! ");
+        
+        ITextComponent hypixelLink = createHypixelLink();
+
         root.appendSibling(itemName);
         root.appendSibling(outbidBy);
         root.appendSibling(hypixelLink);
-        root.appendSibling(ending);
 
         return root;
     }
@@ -186,7 +188,7 @@ public class AwayFromAuction {
         for(Auction currentAuction : current) {
             if (auctionMap.containsKey(currentAuction.getAuctionUUID())) {
                 Auction other = auctionMap.get(currentAuction.getAuctionUUID());
-                if (currentAuction.getHighestBidAmount() < other.getHighestBidAmount()) {
+                if (currentAuction.getHighestBidAmount() < other.getHighestBidAmount() && other.getHighestBid().getBidderUUID().equals(Minecraft.getInstance().player.getUniqueID())) {
                     Minecraft.getInstance().player.sendMessage(createOutbidText(currentAuction, other));
                 }
             }
@@ -198,6 +200,7 @@ public class AwayFromAuction {
         StringTextComponent itemName = new StringTextComponent(current.getItemName());
         itemName.getStyle()
                     .setUnderlined(true)
+                    .setColor(AfAUtils.getColorFromTier(other.getTier()))
                     .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + current.getAuctionUUID()))
                     .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
         Bid yourBid = null;
@@ -209,23 +212,30 @@ public class AwayFromAuction {
         }
         long diff = other.getHighestBidAmount() - (yourBid != null ? yourBid.getAmount() : 0);
         String otherUser = other.getAFA().getPlayerName(other.getHighestBid().getBidderUUID());
-        StringTextComponent outbidBy = new StringTextComponent(" by " + diff + "coin" + (diff > 1 ? "s" : "") + " by " + otherUser + "! ");
+        StringTextComponent outbidBy = new StringTextComponent(" by " + AfAUtils.formatCoins(diff) + " coin" + (diff > 1 ? "s" : "") + " by " + otherUser + "! ");
+        ITextComponent hypixelLink = createHypixelLink();
+        root.appendSibling(itemName);
+        root.appendSibling(outbidBy);
+        root.appendSibling(hypixelLink);
+
+        return root;
+    }
+
+    private ITextComponent createHypixelLink() {
+        if (onHypixel()) return new StringTextComponent("");
         StringTextComponent hypixelLink = new StringTextComponent("CLICK HERE");
         hypixelLink.getStyle()
                     .setUnderlined(true)
                     .setBold(true)
                     .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
                     .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to join the Hypixel server!")));
-        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server now!");
-        root.appendSibling(itemName);
-        root.appendSibling(outbidBy);
-        root.appendSibling(hypixelLink);
-        root.appendSibling(ending);
-
-        return root;
+        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server!");
+        hypixelLink.appendSibling(ending);
+        return hypixelLink;
     }
     
     void setTotalCoins(long coins) {
+        LOGGER.info(String.format("%,d coins total", coins));
         this.totalCoins = coins;
     }
     
@@ -419,39 +429,10 @@ public class AwayFromAuction {
     
     public Auction[] getAuctions() {
         return allAuctions.values().toArray(new Auction[0]);
-        /*
-        try {
-            if (hypixelApi == null) {
-                if (!refreshHypixelApi()) {
-                    LOGGER.error("Something went wrong refreshing Hypixel API object!");
-                    return new Auction[] {Auction.ERROR_AUCTION};
-                }
-            }
-            
-            SkyBlockAuctionsReply reply = hypixelApi.getSkyBlockAuctions(0).get(1, TimeUnit.MINUTES);
-            
-            if (reply.getAuctions().size() > 0) {
-                Auction[] auctions = new Auction[reply.getAuctions().size()];
-                for (int i = 0; i < reply.getAuctions().size(); i++) {
-                    auctions[i] = new Auction(reply.getAuctions().get(i).getAsJsonObject(), this);
-                }
-                return auctions;
-            } else {
-                LOGGER.error("Attempted to get auctions, but no auctions found!");
-                return new Auction[] {Auction.ERROR_AUCTION};
-            }
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-            LOGGER.error("Something went wrong getting auctions. Exception: " + e.getLocalizedMessage());
-            LOGGER.catching(Level.ERROR, e);
-            return new Auction[] {Auction.ERROR_AUCTION};
-        }
-        */
     }
     
     public String[] getAuctionItems() {
         return itemAuctionMap.keySet().toArray(new String[0]);
-        // return getAuctionItems("");
-        //TODO see which is better
     }
     
     public String[] getAuctionItems(String filter) {
@@ -519,12 +500,15 @@ public class AwayFromAuction {
     void createSyncThread() {
         if (syncThread == null) {
             syncThread = new SyncThread(this);
+            LOGGER.info("Starting sync thread");
             syncThread.start();
         }
     }
     
     void stopSyncThread() {
         if (syncThread != null) {
+            LOGGER.info("Stopping sync thread");
+            syncThread.stopFlag();
             syncThread.interrupt();
             syncThread = null;
         }
