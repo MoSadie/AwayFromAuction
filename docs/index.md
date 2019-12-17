@@ -2,8 +2,6 @@
 title: Away from Auction | MoSadie
 ---
 
-# WIP Page
-
 # Description
 Away from Auction is a Minecraft Forge mod that allows the user to view the [Hypixel Skyblock](https://hypixel.net) auction house remotely and be notified in-game whenever someone outbids you, bids on your auction, or one of your auctions is close to ending.
 
