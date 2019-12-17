@@ -22,7 +22,7 @@ jobs:
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-          process.env.UPLOADURL = github.repo.getReleaseByTag(...content.repo, ${{ github.ref }}).upload_url
+          process.env.UPLOADURL = context.payload.release.upload_url
     - name: Upload Release Asset
       id: upload-release-asset 
       uses: actions/upload-release-asset@v1.0.1
