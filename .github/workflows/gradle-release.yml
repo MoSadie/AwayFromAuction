@@ -36,9 +36,3 @@ jobs:
         asset_path: ./build/libs/awayfromauction-${{ env.GITHUB_TAG_NAME }}.jar
         asset_name: awayfromauction-${{ env.GITHUB_TAG_NAME }}.jar
         asset_content_type: application/java-archive
-    - name: Rebuild GitHub Page
-      uses: actions/github-script@0.3.0
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        script: |
-          github.repos.requestPageBuild({...context.repo})
