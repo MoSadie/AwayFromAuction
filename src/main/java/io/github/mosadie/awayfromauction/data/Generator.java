@@ -18,7 +18,7 @@ public class Generator {
     }
 
     private static void registerServerProviders(DataGenerator generator) {
-        //Client side mod, so no server stuff
+        // Client side mod, so no server stuff
     }
 
     private static void registerClientProviders(DataGenerator generator) {

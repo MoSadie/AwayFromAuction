@@ -44,10 +44,6 @@ public class ClientEventHandler {
         
         String[] args = event.getMessage().split(" ");
         
-        if (!args[0].equalsIgnoreCase("/afa")) {
-            return;
-        }
-        
         if (args.length < 2) {
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
             return;
@@ -202,7 +198,7 @@ public class ClientEventHandler {
             Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.supriseme.success"));
             Auction[] auctions = mod.getAuctions();
             if (auctions.length == 0) {
-                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("command.supriseme.fail",Config.GENERAL_REFRESH_DELAY));
+                Minecraft.getInstance().player.sendMessage(AwayFromAuction.getTranslatedTextComponent("error.notsync",Config.GENERAL_REFRESH_DELAY));
             }
             Auction randAuction = auctions[new Random().nextInt(auctions.length)];
             args = new String[] {"/afa", "view", randAuction.getAuctionUUID().toString()};
@@ -244,6 +240,7 @@ public class ClientEventHandler {
     public void onReceiveChat(ClientChatReceivedEvent event) {
         String message = event.getMessage().getString();
         
+        // Checks to see if message is about a new API key
         if (message.startsWith("Your new API key is ") && mod.onHypixel() ) {
             AwayFromAuction.getLogger().info("API Key message autodected!");
             try {

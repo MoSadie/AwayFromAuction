@@ -13,11 +13,19 @@ public class AuctionSelectItemBookInfo implements IBookInfo {
 
     private static final int RESULTS_PER_PAGE = 3;
 
+    /**
+     * @return The number of pages in the book.
+     */
     @Override
     public int func_216918_a() { // Number of pages
         return items.length / RESULTS_PER_PAGE + 1;
     }
 
+    /**
+     * Gets the content for a specified page.
+     * @param page The page (zero indexed) to get content for.
+     * @return An ITextComponent with content for the specified page.
+     */
     @Override
     public ITextComponent func_216915_a(int page) { // Get text on page
         ITextComponent root = new StringTextComponent("Click an item to search for:\n\n");
@@ -33,6 +41,11 @@ public class AuctionSelectItemBookInfo implements IBookInfo {
         this.afa = afa;
     }
 
+    /**
+     * Gets the item name or a blank text component.
+     * @param index The index of the item in the items array.
+     * @return ITextComponent that has the item name or a blank string.
+     */
     private ITextComponent getItemLineOrBlank(int index) {
         if (index >= items.length) return new StringTextComponent("");
         String item = items[index];

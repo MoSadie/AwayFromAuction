@@ -18,13 +18,21 @@ public class AuctionsBookInfo implements IBookInfo {
         this.auctions = auctions;
     }
     
+    /**
+     * @return The total number of pages in the book.
+     */
     @Override
-    public int func_216918_a() { // Number of pages
+    public int func_216918_a() {
         return auctions.length;
     }
     
+    /**
+     * Gets the content of a specified page.
+     * @param page The page (zero indexed) to get content for.
+     * @return An ITextComponent with the content for the specified page.
+     */
     @Override
-    public ITextComponent func_216915_a(int page) { // Get text for a specific page, starting at 0
+    public ITextComponent func_216915_a(int page) {
         StringTextComponent root = new StringTextComponent("Auction Details:\n");
         
         Auction auction = auctions[page];

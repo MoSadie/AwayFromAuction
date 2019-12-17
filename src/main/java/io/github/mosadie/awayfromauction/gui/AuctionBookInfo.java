@@ -14,13 +14,21 @@ import net.minecraft.util.text.event.HoverEvent.Action;
 public class AuctionBookInfo implements IBookInfo {
     private final Auction auction;
 
+    /**
+     * @return Total number of pages in the book.
+     */
     @Override
-    public int func_216918_a() { // Number of pages
+    public int func_216918_a() {
         return 3;
     }
 
+    /**
+     * Get the content of a specified page.
+     * @param page The page (zero indexed) to get content for.
+     * @return An ITextComponent for the specified page.
+     */
     @Override
-    public ITextComponent func_216915_a(int page) { // Get text for a specific page, starting at 0
+    public ITextComponent func_216915_a(int page) {
         StringTextComponent root = new StringTextComponent("Auction Details for \n");
         StringTextComponent sibling = new StringTextComponent(auction.getItemName() + (auction.getItemStack().getCount() > 0 ? " x" + auction.getItemStack().getCount() : "") + "\n\n");
         sibling.getStyle()
@@ -114,7 +122,7 @@ public class AuctionBookInfo implements IBookInfo {
 
             root.appendSibling(info);
             root.appendSibling(uuid);
-            root.appendSibling(joinHypixel);
+            if (!auction.getAFA().onHypixel()) root.appendSibling(joinHypixel);
         }
 
         return root;

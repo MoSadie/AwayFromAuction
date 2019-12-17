@@ -53,7 +53,7 @@ public class Config {
         try {
             ((AwayFromAuction) ModList.get().getModContainerById(AwayFromAuction.MOD_ID).get().getMod()).refreshHypixelApi();
         } catch(NoSuchElementException e) {
-            // Cry?
+            // Do nothing, it's fine, we'll refresh when the key is set later.
         }
     }
 
@@ -62,7 +62,7 @@ public class Config {
         try {
             ((AwayFromAuction) ModList.get().getModContainerById(AwayFromAuction.MOD_ID).get().getMod()).refreshHypixelApi();
         } catch(NoSuchElementException e) {
-            // Cry?
+            // Do nothing, it's fine, we'll refresh when the key is set later.
         }
     }
 }

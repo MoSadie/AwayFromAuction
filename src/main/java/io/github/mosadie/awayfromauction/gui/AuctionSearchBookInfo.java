@@ -13,19 +13,27 @@ import net.minecraft.util.text.event.HoverEvent;
 
 public class AuctionSearchBookInfo implements IBookInfo {
 
-    private final String search;
+    private final String query;
     private final Auction[] auctions;
 
     private static final int RESULTS_PER_PAGE = 3;
 
+    /**
+     * @return The number of pages in the book.
+     */
     @Override
-    public int func_216918_a() { // Number of pages
+    public int func_216918_a() {
         return auctions.length/RESULTS_PER_PAGE + 1;
     }
 
+    /**
+     * Get the content of a specified page.
+     * @param page The page (zero indexed) to get content for.
+     * @return An ITextComponent with content for the specified page
+     */
     @Override
-    public ITextComponent func_216915_a(int page) { // Get text on page
-        ITextComponent root = new StringTextComponent("Search Results for: " + search + "\n\n");
+    public ITextComponent func_216915_a(int page) {
+        ITextComponent root = new StringTextComponent("Search Results for: " + query + "\n\n");
         for (int i = 0; i < RESULTS_PER_PAGE; i++) {
             root.appendSibling(getAuctionLineOrBlank(page*RESULTS_PER_PAGE + i));
             root.appendText("\n\n");
@@ -33,8 +41,8 @@ public class AuctionSearchBookInfo implements IBookInfo {
         return root;
     }
 
-    public AuctionSearchBookInfo(Auction[] auctions, String search) {
-        this.search = search;
+    public AuctionSearchBookInfo(Auction[] auctions, String query) {
+        this.query = query;
         List<Auction> activeAuctions = new ArrayList<>();
         for (Auction auction : auctions) {
             if (!auction.getEnd().before(auction.getSyncTimestamp()))
@@ -43,6 +51,11 @@ public class AuctionSearchBookInfo implements IBookInfo {
         this.auctions = activeAuctions.toArray(new Auction[0]);
     }
 
+    /**
+     * Gets the one-line description for an auction or returns a blank line if the auction is not found.
+     * @param index The index of the auction in the auctions array.
+     * @return ITextComponent that has the one-line description for the auction or a blank string.
+     */
     private ITextComponent getAuctionLineOrBlank(int index) {
         if (index >= auctions.length) return new StringTextComponent("");
         Auction auction = auctions[index];

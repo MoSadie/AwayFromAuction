@@ -37,6 +37,10 @@ public class SyncThread extends Thread {
         }
     }
     
+    /**
+     * Syncs all active auction data from the Hypixel API.
+     * Sorts that data into multiple groups and calls {@link AwayFromAuction#updateAuctions(Map, Map, Map, List)} to update the auction cache.
+     */
     private void sync() {
         if (Minecraft.getInstance().player == null) {
             return;
@@ -105,20 +109,6 @@ public class SyncThread extends Thread {
             AwayFromAuction.getLogger().warn("An exception occured while attempting to sync auction details: " + e.getLocalizedMessage());
             AwayFromAuction.getLogger().catching(e);
         }
-        // Things to do:
-        // Download all auctions.
-        // Group Auctions by Owner uuid
-        // Group Auctions by Item
-        // Group Auctions involving player UUID
-        
-        
-        // Features list:
-        // Your Auction:
-        // - New Bid
-        // - Almost Done
-        // - Done
-        // Other Auctions:
-        // - Outbid
     }
     
 }
