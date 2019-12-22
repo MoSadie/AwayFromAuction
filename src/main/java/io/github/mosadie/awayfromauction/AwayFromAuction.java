@@ -1,5 +1,6 @@
 package io.github.mosadie.awayfromauction;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,21 +30,20 @@ import io.github.mosadie.awayfromauction.util.Auction.Bid;
 import net.hypixel.api.HypixelAPI;
 import net.hypixel.api.reply.skyblock.SkyBlockAuctionReply;
 import net.minecraft.client.Minecraft;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraft.util.text.event.ClickEvent;
-import net.minecraft.util.text.event.HoverEvent;
+import net.minecraft.event.ClickEvent;
+import net.minecraft.event.HoverEvent;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.IChatComponent;
+import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.IEventBus;
-import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.common.config.Configuration;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.config.ModConfig;
-import net.minecraftforge.fml.event.lifecycle.FMLClientSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.common.Mod.EventHandler;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
-@Mod("awayfromauction")
+@Mod(modid = AwayFromAuction.MOD_ID, name = "AwayFromAuction", version = "v1.0.0", acceptedMinecraftVersions = "1.8.9", clientSideOnly = true, useMetadata = true, updateJSON = "https://raw.githubusercontent.com/MoSadie/AwayFromAuction/master/updateJSON.json")
 public class AwayFromAuction {
     public static final String MOD_ID = "awayfromauction";
     
@@ -55,6 +55,8 @@ public class AwayFromAuction {
     
     private HypixelAPI hypixelApi;
     private HttpClient httpClient = HttpClientBuilder.create().build();
+
+    public static Configuration config;
     
     // Auction cache
     private Map<UUID, Auction> allAuctions;
@@ -63,17 +65,7 @@ public class AwayFromAuction {
     private List<Auction> bidAuctions;
     private long totalCoins;
     
-    public AwayFromAuction() {
-        LOGGER.debug("Registering Client Config");
-        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_CONFIG);
-        
-        LOGGER.debug("Registering Client Event Listener");
-        IEventBus event = FMLJavaModLoadingContext.get().getModEventBus();
-        event.addListener(this::setupClient);
-        
-        LOGGER.debug("Loading Config");
-        Config.loadConfig(Config.CLIENT_CONFIG, FMLPaths.CONFIGDIR.get().resolve("awayfromauction-client.toml"));
-        
+    public AwayFromAuction() {        
         LOGGER.debug("Setting up maps");
         nameCache = new HashMap<>();
         uuidCache = new HashMap<>();
@@ -84,12 +76,28 @@ public class AwayFromAuction {
         bidAuctions = new ArrayList<Auction>();
         LOGGER.debug("Map setup complete!");
     }
-    
-    private void setupClient(FMLClientSetupEvent event) {
+
+    @EventHandler
+    public void preInit(FMLPreInitializationEvent event) {
+        LOGGER.debug("Reading/Setting up config file");
+        File directory = event.getModConfigurationDirectory();
+        config = new Configuration(new File(directory.getPath(), "awayfromauction.cfg"));
+        Config.readConfig();
+
+        LOGGER.debug("Registering Client Command");
+        ClientCommandHandler.instance.registerCommand(new AfACommand(this));
+        
         LOGGER.debug("Registering new ClientEventHandler");
         MinecraftForge.EVENT_BUS.register(new ClientEventHandler(this));
-        
-        if (!Config.HYPIXEL_API_KEY.get().equals("")) {
+    }
+
+    @EventHandler
+    public void postInit(FMLPostInitializationEvent e) {
+        if (config.hasChanged()) {
+            config.save();
+        }
+
+        if (!Config.HYPIXEL_API_KEY.equals("")) {
             refreshHypixelApi();
         }
     }
@@ -98,8 +106,8 @@ public class AwayFromAuction {
         return LOGGER;
     }
     
-    public static TranslationTextComponent getTranslatedTextComponent(String key, Object... args) {
-        return new TranslationTextComponent(MOD_ID + "." + key, args);
+    public static ChatComponentTranslation getTranslatedTextComponent(String key, Object... args) {
+        return new ChatComponentTranslation(MOD_ID + "." + key, args);
     }
     
     /**
@@ -112,16 +120,16 @@ public class AwayFromAuction {
     void updateAuctions(Map<UUID, Auction> allAuctionsMap, Map<UUID, List<Auction>> playerAuctionsMap, Map<String, List<Auction>> itemAuctionsMap, List<Auction> bidAuctions) {
         if (allAuctionsMap == null || allAuctionsMap.isEmpty()) {
             LOGGER.error("No auctions found on the auction house!");
-            Minecraft.getInstance().enqueue(() -> {
-                Minecraft.getInstance().player.sendMessage(getTranslatedTextComponent("error.noauctions"));
+            Minecraft.getMinecraft().addScheduledTask(() -> {
+                Minecraft.getMinecraft().thePlayer.addChatMessage(getTranslatedTextComponent("error.noauctions"));
             });
             refreshHypixelApi();
             return;
         }
         if(!onHypixel()) {
             LOGGER.debug("Checking for notifications to send.");
-            notifyEndingSoon(playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
-            notifyNewBid(this.playerAuctionMap.get(Minecraft.getInstance().player.getUniqueID()), playerAuctionsMap.get(Minecraft.getInstance().player.getUniqueID()));
+            notifyEndingSoon(playerAuctionsMap.get(Minecraft.getMinecraft().thePlayer.getUniqueID()));
+            notifyNewBid(this.playerAuctionMap.get(Minecraft.getMinecraft().thePlayer.getUniqueID()), playerAuctionsMap.get(Minecraft.getMinecraft().thePlayer.getUniqueID()));
             notifyOutbid(this.bidAuctions, bidAuctions);
         }
         LOGGER.debug("Updating auction cache!");
@@ -143,27 +151,27 @@ public class AwayFromAuction {
         for(Auction auction : auctionsToCheck) {
             if (auction.getEnd().getTime()-auction.getSyncTimestamp().getTime() < (5*60)) {
                 LOGGER.info("Auction ending soon: " + auction.getAuctionUUID());
-                Minecraft.getInstance().player.sendMessage(createEndingSoonText(auction));
+                Minecraft.getMinecraft().thePlayer.addChatMessage(createEndingSoonText(auction));
             }
         }
     }
     
     /**
-    * Creates a user-friendly ITextComponent to be shown to the player about an auction that is ending soon.
+    * Creates a user-friendly IChatComponent to be shown to the player about an auction that is ending soon.
     * @param auction The auction that is ending soon.
-    * @return An ITextComponent to be shown to the player.
+    * @return An IChatComponent to be shown to the player.
     */
-    private ITextComponent createEndingSoonText(Auction auction) {
-        StringTextComponent root = new StringTextComponent("[AfA] Your auction for ");
-        StringTextComponent itemName = new StringTextComponent(auction.getItemName());
-        itemName.getStyle()
+    private IChatComponent createEndingSoonText(Auction auction) {
+        ChatComponentText root = new ChatComponentText("[AfA] Your auction for ");
+        ChatComponentText itemName = new ChatComponentText(auction.getItemName());
+        itemName.getChatStyle()
         .setUnderlined(true)
-        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
+        .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
+        .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view auction!")));
         long time = auction.getEnd().getTime()-auction.getSyncTimestamp().getTime();
-        StringTextComponent endingTime = new StringTextComponent(" is ending in about " + time + "second" + (time > 1 ? "s" : "") + "! ");
+        ChatComponentText endingTime = new ChatComponentText(" is ending in about " + time + "second" + (time > 1 ? "s" : "") + "! ");
         
-        ITextComponent hypixelLink = createHypixelLink();
+        IChatComponent hypixelLink = createHypixelLink();
         
         root.appendSibling(itemName);
         root.appendSibling(endingTime);
@@ -195,32 +203,32 @@ public class AwayFromAuction {
                 Auction other = auctionMap.get(auction.getAuctionUUID());
                 if (other.getHighestBidAmount() > auction.getHighestBidAmount()) {
                     LOGGER.info("New bid on auction " + auction.getAuctionUUID());
-                    Minecraft.getInstance().player.sendMessage(createNewBidText(other));
+                    Minecraft.getMinecraft().thePlayer.addChatMessage(createNewBidText(other));
                 }
             }
         }
     }
     
     /**
-    * Creates a user-friendly ITextComponent to be shown to the player about a new bid on their auction.
+    * Creates a user-friendly IChatComponent to be shown to the player about a new bid on their auction.
     * @param auction The auction state of the auction.
-    * @return An ITextComponent to show to the player.
+    * @return An IChatComponent to show to the player.
     */
-    private ITextComponent createNewBidText(Auction auction) {
-        StringTextComponent root = new StringTextComponent("[AfA] There is a new bid on your auction for the ");
+    private IChatComponent createNewBidText(Auction auction) {
+        ChatComponentText root = new ChatComponentText("[AfA] There is a new bid on your auction for the ");
         
-        StringTextComponent itemName = new StringTextComponent(auction.getItemName());
-        itemName.getStyle()
+        ChatComponentText itemName = new ChatComponentText(auction.getItemName());
+        itemName.getChatStyle()
         .setUnderlined(true)
         .setColor(AfAUtils.getColorFromTier(auction.getTier()))
-        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
+        .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
+        .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view auction!")));
         
         int newBid = auction.getHighestBidAmount();
         String otherUser = auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID());
-        StringTextComponent bidInfo = new StringTextComponent(" for " + AfAUtils.formatCoins(newBid) + " coin" + (newBid > 1 ? "s" : "") + " by " + otherUser + "! ");
+        ChatComponentText bidInfo = new ChatComponentText(" for " + AfAUtils.formatCoins(newBid) + " coin" + (newBid > 1 ? "s" : "") + " by " + otherUser + "! ");
         
-        ITextComponent hypixelLink = createHypixelLink();
+        IChatComponent hypixelLink = createHypixelLink();
         
         root.appendSibling(itemName);
         root.appendSibling(bidInfo);
@@ -251,40 +259,40 @@ public class AwayFromAuction {
         for(Auction currentAuction : current) {
             if (auctionMap.containsKey(currentAuction.getAuctionUUID())) {
                 Auction newAuction = auctionMap.get(currentAuction.getAuctionUUID());
-                if (currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount() && newAuction.getHighestBid().getBidderUUID().equals(Minecraft.getInstance().player.getUniqueID())) {
-                    Minecraft.getInstance().player.sendMessage(createOutbidText(currentAuction, newAuction));
+                if (currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount() && newAuction.getHighestBid().getBidderUUID().equals(Minecraft.getMinecraft().thePlayer.getUniqueID())) {
+                    Minecraft.getMinecraft().thePlayer.addChatMessage(createOutbidText(currentAuction, newAuction));
                 }
             }
         }
     }
     
     /**
-    * Creates a user-friendly ITextComponent to be shown to the player about being outbid on an auction.
+    * Creates a user-friendly IChatComponent to be shown to the player about being outbid on an auction.
     * @param current Current auction state.
     * @param other New auction state.
-    * @return An ITextComponent to show to the player
+    * @return An IChatComponent to show to the player
     */
-    private ITextComponent createOutbidText(Auction current, Auction other) {
-        StringTextComponent root = new StringTextComponent("[AfA] You have been outbid on the auction for ");
+    private IChatComponent createOutbidText(Auction current, Auction other) {
+        ChatComponentText root = new ChatComponentText("[AfA] You have been outbid on the auction for ");
         
-        StringTextComponent itemName = new StringTextComponent(current.getItemName());
-        itemName.getStyle()
+        ChatComponentText itemName = new ChatComponentText(current.getItemName());
+        itemName.getChatStyle()
         .setUnderlined(true)
         .setColor(AfAUtils.getColorFromTier(other.getTier()))
-        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + current.getAuctionUUID()))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view auction!")));
+        .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + current.getAuctionUUID()))
+        .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view auction!")));
         
         Bid yourBid = null;
         for(Bid bid : current.getBids()) {
-            if (bid.getBidderUUID().equals(Minecraft.getInstance().player.getUniqueID())){
+            if (bid.getBidderUUID().equals(Minecraft.getMinecraft().thePlayer.getUniqueID())){
                 yourBid = bid;
                 break;
             }
         }
         long diff = other.getHighestBidAmount() - (yourBid != null ? yourBid.getAmount() : 0);
         String otherUser = other.getAFA().getPlayerName(other.getHighestBid().getBidderUUID());
-        StringTextComponent outbidBy = new StringTextComponent(" by " + AfAUtils.formatCoins(diff) + " coin" + (diff > 1 ? "s" : "") + " by " + otherUser + "! ");
-        ITextComponent hypixelLink = createHypixelLink();
+        ChatComponentText outbidBy = new ChatComponentText(" by " + AfAUtils.formatCoins(diff) + " coin" + (diff > 1 ? "s" : "") + " by " + otherUser + "! ");
+        IChatComponent hypixelLink = createHypixelLink();
         root.appendSibling(itemName);
         root.appendSibling(outbidBy);
         root.appendSibling(hypixelLink);
@@ -292,15 +300,15 @@ public class AwayFromAuction {
         return root;
     }
     
-    private ITextComponent createHypixelLink() {
-        if (onHypixel()) return new StringTextComponent("");
-        StringTextComponent hypixelLink = new StringTextComponent("CLICK HERE");
-        hypixelLink.getStyle()
+    private IChatComponent createHypixelLink() {
+        if (onHypixel()) return new ChatComponentText("");
+        ChatComponentText hypixelLink = new ChatComponentText("CLICK HERE");
+        hypixelLink.getChatStyle()
         .setUnderlined(true)
         .setBold(true)
-        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to join the Hypixel server!")));
-        StringTextComponent ending = new StringTextComponent(" to join the Hypixel server!");
+        .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
+        .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to join the Hypixel server!")));
+        ChatComponentText ending = new ChatComponentText(" to join the Hypixel server!");
         hypixelLink.appendSibling(ending);
         return hypixelLink;
     }
@@ -339,7 +347,7 @@ public class AwayFromAuction {
         HypixelAPI tmpApi = new HypixelAPI(apiKey);
         
         try {
-            tmpApi.getPlayerByUuid(Minecraft.getInstance().player.getUniqueID()).get(1, TimeUnit.MINUTES);
+            tmpApi.getPlayerByUuid(Minecraft.getMinecraft().thePlayer.getUniqueID()).get(1, TimeUnit.MINUTES);
             LOGGER.info("API key test passed!");
         } catch (Exception e) {
             LOGGER.warn("API key test failed! Exception: " + e.getLocalizedMessage());
@@ -356,7 +364,8 @@ public class AwayFromAuction {
     public boolean setAPIKey(String apiKey) {
         if (testAPIKey(apiKey)) {
             LOGGER.info("Setting new Hypixel API key");
-            Config.HYPIXEL_API_KEY.set(apiKey);
+            Config.HYPIXEL_API_KEY = apiKey;
+            config.save();
             return refreshHypixelApi();
         }
         return false;
@@ -368,8 +377,8 @@ public class AwayFromAuction {
     * @return True if the key works, false otherwise.
     */
     boolean refreshHypixelApi() {
-        if (testAPIKey(Config.HYPIXEL_API_KEY.get())) {
-            hypixelApi = new HypixelAPI(UUID.fromString(Config.HYPIXEL_API_KEY.get()));
+        if (testAPIKey(Config.HYPIXEL_API_KEY)) {
+            hypixelApi = new HypixelAPI(UUID.fromString(Config.HYPIXEL_API_KEY));
             LOGGER.info("Refreshed Hypixel API Object!");
             return true;
         } else {
@@ -383,7 +392,7 @@ public class AwayFromAuction {
     */
     public boolean onHypixel() {
         try {
-            return Minecraft.getInstance().getCurrentServerData().serverIP.contains(".hypixel.net");
+            return Minecraft.getMinecraft().getCurrentServerData().serverIP.contains(".hypixel.net");
         } catch (Exception e) {
             return false;
         }
@@ -652,7 +661,7 @@ public class AwayFromAuction {
         }
         itemAuctionMap.get(auction.getItemName().toLowerCase()).add(auction);
         
-        if (AfAUtils.bidsContainUUID(auction.getBids(), Minecraft.getInstance().player.getUniqueID())) {
+        if (AfAUtils.bidsContainUUID(auction.getBids(), Minecraft.getMinecraft().thePlayer.getUniqueID())) {
             bidAuctions.add(auction);
         }
     }

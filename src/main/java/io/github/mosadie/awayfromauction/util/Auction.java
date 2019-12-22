@@ -13,8 +13,8 @@ import org.apache.commons.codec.binary.Base64InputStream;
 import io.github.mosadie.awayfromauction.AwayFromAuction;
 import net.minecraft.client.Minecraft;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.CompoundNBT;
 import net.minecraft.nbt.CompressedStreamTools;
+import net.minecraft.nbt.NBTTagCompound;
 
 public class Auction {
 
@@ -65,7 +65,7 @@ public class Auction {
         tier = auctionData.get("tier").getAsString();
         startingBid = auctionData.get("starting_bid").getAsInt();
 
-        CompoundNBT nbt = null;
+        NBTTagCompound nbt = null;
 
         try {
             String bytes;
@@ -82,16 +82,12 @@ public class Auction {
         }
 
         if (nbt == null) {
-            itemStack = ItemStack.EMPTY;
+            itemStack = null;
             itemCount = 0;
-            AwayFromAuction.getLogger().error("Auction Item NBT is null! Using Empy Item.");
+            AwayFromAuction.getLogger().error("Auction Item NBT is null! Using Null ItemStack.");
         } else {
-            itemCount = nbt.getList("i", 10).getCompound(0).getInt("Count");
-
-            int itemId = Integer.parseInt(nbt.getList("i", 10).getCompound(0).get("id").getString().replace("s", ""));
-            String regName = AfAUtils.convertIDtoRegName(itemId, itemName);
-            nbt.getList("i", 10).getCompound(0).putString("id", regName);
-            itemStack = ItemStack.read(nbt.getList("i", 10).getCompound(0));
+            itemStack = ItemStack.loadItemStackFromNBT(nbt.getTagList("i", 10).getCompoundTagAt(0));
+            itemCount = nbt.getTagList("i", 10).getCompoundTagAt(0).getInteger("Count");
         }
 
         claimed = auctionData.get("claimed").getAsBoolean();
@@ -113,9 +109,9 @@ public class Auction {
 
     private Auction() {
         auctionUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        ownerUUID = Minecraft.getInstance().player.getUniqueID();
+        ownerUUID = Minecraft.getMinecraft().thePlayer.getUniqueID();
         ownerProfileUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        coop = new UUID[] {Minecraft.getInstance().player.getUniqueID()};
+        coop = new UUID[] {Minecraft.getMinecraft().thePlayer.getUniqueID()};
         start = new Date();
         end = new Date();
         syncTimestamp = new Date();
@@ -126,9 +122,9 @@ public class Auction {
         category = "Error";
         tier = "Error";
         startingBid = 0;
-        itemStack = ItemStack.EMPTY;
+        itemStack = null;
         claimed = false;
-        claimedBidders =new UUID[] {Minecraft.getInstance().player.getUniqueID()};
+        claimedBidders =new UUID[] {Minecraft.getMinecraft().thePlayer.getUniqueID()};
         highestBidAmount = 0;
         bids = new Bid[] {new Bid()};
         afa = null;
@@ -237,7 +233,7 @@ public class Auction {
 
         private Bid() {
             auctionUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-            bidderUUID = Minecraft.getInstance().player.getUniqueID();
+            bidderUUID = Minecraft.getMinecraft().thePlayer.getUniqueID();
             amount = 0;
             timestamp = new Date();
         }

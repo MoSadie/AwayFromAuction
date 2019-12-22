@@ -4,12 +4,11 @@ import java.time.Duration;
 
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
-import net.minecraft.client.gui.screen.ReadBookScreen.IBookInfo;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.event.ClickEvent;
-import net.minecraft.util.text.event.HoverEvent;
-import net.minecraft.util.text.event.HoverEvent.Action;
+import io.github.mosadie.awayfromauction.util.IBookInfo;
+import net.minecraft.event.ClickEvent;
+import net.minecraft.event.HoverEvent;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 
 public class AuctionBookInfo implements IBookInfo {
     private final Auction auction;
@@ -18,47 +17,47 @@ public class AuctionBookInfo implements IBookInfo {
     * @return Total number of pages in the book.
     */
     @Override
-    public int func_216918_a() {
+    public int getTotalPages() {
         return 3;
     }
     
     /**
     * Get the content of a specified page.
     * @param page The page (zero indexed) to get content for.
-    * @return An ITextComponent for the specified page.
+    * @return An IChatComponent for the specified page.
     */
     @Override
-    public ITextComponent func_216915_a(int page) {
-        StringTextComponent root = new StringTextComponent("Auction Details for \n");
-        StringTextComponent sibling = new StringTextComponent(auction.getItemName() + (auction.getItemStack().getCount() > 0 ? " x" + auction.getItemStack().getCount() : "") + "\n\n");
-        sibling.getStyle()
+    public IChatComponent getPageContent(int page) {
+        ChatComponentText root = new ChatComponentText("Auction Details for \n");
+        ChatComponentText sibling = new ChatComponentText(auction.getItemName() + (auction.getItemStack().stackSize > 0 ? " x" + auction.getItemStack().stackSize : "") + "\n\n");
+        sibling.getChatStyle()
         .setUnderlined(true)
         .setColor(AfAUtils.getColorFromTier(auction.getTier()))
-        .setHoverEvent(new HoverEvent(Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
+        .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(auction.getItemLore())));
         
         root.appendSibling(sibling);
         
         switch(page) {
             case 0: // Overview
-            StringTextComponent owner = new StringTextComponent("Auction Owner: ");
-            StringTextComponent ownerName = new StringTextComponent(auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
-            ownerName.getStyle()
+            ChatComponentText owner = new ChatComponentText("Auction Owner: ");
+            ChatComponentText ownerName = new ChatComponentText(auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
+            ownerName.getChatStyle()
             .setUnderlined(true)
-            .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
-            .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view other auctions by " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
+            .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
+            .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view other auctions by " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
             owner.appendSibling(ownerName);
             owner.appendText("\n\n");
             
-            StringTextComponent currentBid;
+            ChatComponentText currentBid;
             if (auction.getHighestBid() != null) {
-                currentBid = new StringTextComponent("Current bid: " + auction.getHighestBidAmount() + " by " + auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n\n");
+                currentBid = new ChatComponentText("Current bid: " + auction.getHighestBidAmount() + " by " + auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n\n");
             } else {
-                currentBid = new StringTextComponent("Starting bid: " + auction.getStartingBid() + "\n\n");
+                currentBid = new ChatComponentText("Starting bid: " + auction.getStartingBid() + "\n\n");
             }
             
-            StringTextComponent timeLeft;
+            ChatComponentText timeLeft;
             if (auction.getEnd().before(auction.getSyncTimestamp())) {
-                timeLeft = new StringTextComponent("Time Left: Ended!\n\n");
+                timeLeft = new ChatComponentText("Time Left: Ended!\n\n");
             } else {
                 Duration time = Duration.between(auction.getSyncTimestamp().toInstant(), auction.getEnd().toInstant());
                 String timeLeftString = "";
@@ -78,7 +77,7 @@ public class AuctionBookInfo implements IBookInfo {
                     timeLeftString += time.getSeconds() + " second" + (time.getSeconds() > 1 ? "s" : "") + " ";
                     time = time.minusSeconds(time.getSeconds());
                 }
-                timeLeft = new StringTextComponent("Time Left: " + timeLeftString + "\n\n");
+                timeLeft = new ChatComponentText("Time Left: " + timeLeftString + "\n\n");
             }
             
             root.appendSibling(owner);
@@ -87,22 +86,22 @@ public class AuctionBookInfo implements IBookInfo {
             break;
             
             case 1: // Item Info
-            StringTextComponent name = new StringTextComponent("Item Name: ");
-            StringTextComponent nameLink = new StringTextComponent(auction.getItemName());
-            nameLink.getStyle()
+            ChatComponentText name = new ChatComponentText("Item Name: ");
+            ChatComponentText nameLink = new ChatComponentText(auction.getItemName());
+            nameLink.getChatStyle()
             .setUnderlined(true)
-            .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa search " + auction.getItemName()))
-            .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view all auctions for " + auction.getItemName())));
+            .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa search " + auction.getItemName()))
+            .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view all auctions for " + auction.getItemName())));
             name.appendSibling(nameLink);
             name.appendText("\n\n");
             
-            StringTextComponent rarity = new StringTextComponent("Rarity: " + auction.getTier() + "\n");
+            ChatComponentText rarity = new ChatComponentText("Rarity: " + auction.getTier() + "\n");
             
-            StringTextComponent count = new StringTextComponent("Item Count: " + auction.getItemCount() + "\n");
+            ChatComponentText count = new ChatComponentText("Item Count: " + auction.getItemCount() + "\n");
             
-            StringTextComponent lore = new StringTextComponent("Lore: ");
-            StringTextComponent loreHover = new StringTextComponent("Hover");
-            loreHover.getStyle().setUnderlined(true).setColor(AfAUtils.getColorFromTier(auction.getTier())).setHoverEvent(new HoverEvent(Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
+            ChatComponentText lore = new ChatComponentText("Lore: ");
+            ChatComponentText loreHover = new ChatComponentText("Hover");
+            loreHover.getChatStyle().setUnderlined(true).setColor(AfAUtils.getColorFromTier(auction.getTier())).setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(auction.getItemLore())));
             lore.appendSibling(loreHover);
             lore.appendText("\n\n");
             
@@ -113,12 +112,12 @@ public class AuctionBookInfo implements IBookInfo {
             break;
             
             case 2: // UUID Copy / Join Hypixel
-            StringTextComponent info = new StringTextComponent("Auction UUID: (Click to get link in chat)\n");
-            StringTextComponent uuid = new StringTextComponent(auction.getAuctionUUID().toString() + "\n");
-            uuid.getStyle().setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));
+            ChatComponentText info = new ChatComponentText("Auction UUID: (Click to get link in chat)\n");
+            ChatComponentText uuid = new ChatComponentText(auction.getAuctionUUID().toString() + "\n");
+            uuid.getChatStyle().setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));
             
-            StringTextComponent joinHypixel = new StringTextComponent("\nClick HERE to join the Hypixel server!");
-            joinHypixel.getStyle().setUnderlined(true).setBold(true).setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"));
+            ChatComponentText joinHypixel = new ChatComponentText("\nClick HERE to join the Hypixel server!");
+            joinHypixel.getChatStyle().setUnderlined(true).setBold(true).setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"));
             
             root.appendSibling(info);
             root.appendSibling(uuid);

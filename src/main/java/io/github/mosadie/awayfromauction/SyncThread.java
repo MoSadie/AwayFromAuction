@@ -26,9 +26,9 @@ public class SyncThread extends Thread {
     
     @Override
     public void run() {
-        while (!this.isInterrupted() && !stopFlag && Minecraft.getInstance() != null) {
+        while (!this.isInterrupted() && !stopFlag && Minecraft.getMinecraft() != null) {
             try {
-                Thread.sleep(Config.GENERAL_REFRESH_DELAY.get() * 1000);
+                Thread.sleep(Config.GENERAL_REFRESH_DELAY * 1000);
                 AwayFromAuction.getLogger().info("Syncing with Hypixel Skyblock Auction House");
                 sync();
                 AwayFromAuction.getLogger().info("Sync finished!");
@@ -43,7 +43,7 @@ public class SyncThread extends Thread {
     * Sorts that data into multiple groups and calls {@link AwayFromAuction#updateAuctions(Map, Map, Map, List)} to update the auction cache.
     */
     private void sync() {
-        if (Minecraft.getInstance().player == null) {
+        if (Minecraft.getMinecraft().thePlayer == null) {
             return;
         }
         HypixelAPI hypixelApi = afa.getOrRefreshHypixelAPI();
@@ -71,7 +71,7 @@ public class SyncThread extends Thread {
                     }
                     itemAuctionMap.get(tmpAuction.getItemName().toLowerCase()).add(tmpAuction);
                     
-                    if (AfAUtils.bidsContainUUID(tmpAuction.getBids(), Minecraft.getInstance().player.getUniqueID())) bidAuctions.add(tmpAuction);
+                    if (AfAUtils.bidsContainUUID(tmpAuction.getBids(), Minecraft.getMinecraft().thePlayer.getUniqueID())) bidAuctions.add(tmpAuction);
                     
                     for (Bid bid : tmpAuction.getBids()) {
                         totalCoins += bid.getAmount();
@@ -97,7 +97,7 @@ public class SyncThread extends Thread {
                     }
                     itemAuctionMap.get(tmpAuction.getItemName().toLowerCase()).add(tmpAuction);
                     
-                    if (AfAUtils.bidsContainUUID(tmpAuction.getBids(), Minecraft.getInstance().player.getUniqueID())) bidAuctions.add(tmpAuction);
+                    if (AfAUtils.bidsContainUUID(tmpAuction.getBids(), Minecraft.getMinecraft().thePlayer.getUniqueID())) bidAuctions.add(tmpAuction);
                     
                     for (Bid bid : tmpAuction.getBids()) {
                         totalCoins += bid.getAmount();

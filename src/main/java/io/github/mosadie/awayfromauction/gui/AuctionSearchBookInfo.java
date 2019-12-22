@@ -5,11 +5,11 @@ import java.util.List;
 
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
-import net.minecraft.client.gui.screen.ReadBookScreen.IBookInfo;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.event.ClickEvent;
-import net.minecraft.util.text.event.HoverEvent;
+import io.github.mosadie.awayfromauction.util.IBookInfo;
+import net.minecraft.event.ClickEvent;
+import net.minecraft.event.HoverEvent;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 
 public class AuctionSearchBookInfo implements IBookInfo {
     
@@ -22,18 +22,18 @@ public class AuctionSearchBookInfo implements IBookInfo {
     * @return The number of pages in the book.
     */
     @Override
-    public int func_216918_a() {
+    public int getTotalPages() {
         return auctions.length/RESULTS_PER_PAGE + 1;
     }
     
     /**
     * Get the content of a specified page.
     * @param page The page (zero indexed) to get content for.
-    * @return An ITextComponent with content for the specified page
+    * @return An IChatComponent with content for the specified page
     */
     @Override
-    public ITextComponent func_216915_a(int page) {
-        ITextComponent root = new StringTextComponent("Search Results for: " + query + "\n\n");
+    public IChatComponent getPageContent(int page) {
+        IChatComponent root = new ChatComponentText("Search Results for: " + query + "\n\n");
         for (int i = 0; i < RESULTS_PER_PAGE; i++) {
             root.appendSibling(getAuctionLineOrBlank(page*RESULTS_PER_PAGE + i));
             root.appendText("\n\n");
@@ -54,16 +54,16 @@ public class AuctionSearchBookInfo implements IBookInfo {
     /**
     * Gets the one-line description for an auction or returns a blank line if the auction is not found.
     * @param index The index of the auction in the auctions array.
-    * @return ITextComponent that has the one-line description for the auction or a blank string.
+    * @return IChatComponent that has the one-line description for the auction or a blank string.
     */
-    private ITextComponent getAuctionLineOrBlank(int index) {
-        if (index >= auctions.length) return new StringTextComponent("");
+    private IChatComponent getAuctionLineOrBlank(int index) {
+        if (index >= auctions.length) return new ChatComponentText("");
         Auction auction = auctions[index];
-        StringTextComponent auctionTextComponent = new StringTextComponent(auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : "") + ": " + (auction.getHighestBidAmount() > 0 ? auction.getHighestBidAmount() : auction.getStartingBid()) + " coins");
-        auctionTextComponent.getStyle()
+        ChatComponentText auctionTextComponent = new ChatComponentText(auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : "") + ": " + (auction.getHighestBidAmount() > 0 ? auction.getHighestBidAmount() : auction.getStartingBid()) + " coins");
+        auctionTextComponent.getChatStyle()
         .setColor(AfAUtils.getColorFromTier(auction.getTier()))
-        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID().toString()))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Auctioneer: " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()) + "\n" + auction.getItemLore())));
+        .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID().toString()))
+        .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Auctioneer: " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()) + "\n" + auction.getItemLore())));
         return auctionTextComponent;
     }
 }

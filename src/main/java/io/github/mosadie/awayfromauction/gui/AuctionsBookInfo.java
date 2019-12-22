@@ -4,11 +4,11 @@ import java.time.Duration;
 
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
-import net.minecraft.client.gui.screen.ReadBookScreen.IBookInfo;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.event.ClickEvent;
-import net.minecraft.util.text.event.HoverEvent;
+import io.github.mosadie.awayfromauction.util.IBookInfo;
+import net.minecraft.event.ClickEvent;
+import net.minecraft.event.HoverEvent;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.IChatComponent;
 
 public class AuctionsBookInfo implements IBookInfo {
     
@@ -22,46 +22,46 @@ public class AuctionsBookInfo implements IBookInfo {
     * @return The total number of pages in the book.
     */
     @Override
-    public int func_216918_a() {
+    public int getTotalPages() {
         return auctions.length;
     }
     
     /**
     * Gets the content of a specified page.
     * @param page The page (zero indexed) to get content for.
-    * @return An ITextComponent with the content for the specified page.
+    * @return An IChatComponent with the content for the specified page.
     */
     @Override
-    public ITextComponent func_216915_a(int page) {
-        StringTextComponent root = new StringTextComponent("Auction Details:\n");
+    public IChatComponent getPageContent(int page) {
+        ChatComponentText root = new ChatComponentText("Auction Details:\n");
         
         Auction auction = auctions[page];
         
-        StringTextComponent itemTitle = new StringTextComponent(auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : "") + "\n\n");
-        itemTitle.getStyle()
+        ChatComponentText itemTitle = new ChatComponentText(auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : "") + "\n\n");
+        itemTitle.getChatStyle()
         .setUnderlined(true)
         .setColor(AfAUtils.getColorFromTier(auction.getTier()))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent(auction.getItemLore())));
+        .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(auction.getItemLore())));
         
-        StringTextComponent owner = new StringTextComponent("Auction Owner: ");
-        StringTextComponent ownerLink = new StringTextComponent(auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
-        ownerLink.getStyle()
+        ChatComponentText owner = new ChatComponentText("Auction Owner: ");
+        ChatComponentText ownerLink = new ChatComponentText(auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
+        ownerLink.getChatStyle()
         .setUnderlined(true)
-        .setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
-        .setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new StringTextComponent("Click to view all auctions by " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
+        .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
+        .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view all auctions by " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
         owner.appendSibling(ownerLink);
         owner.appendText("\n\n");
         
-        StringTextComponent currentBid;
+        ChatComponentText currentBid;
         if (auction.getHighestBid() != null) {
-            currentBid = new StringTextComponent("Current bid: " + auction.getHighestBidAmount() + " by " + auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n\n");
+            currentBid = new ChatComponentText("Current bid: " + auction.getHighestBidAmount() + " by " + auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n\n");
         } else {
-            currentBid = new StringTextComponent("Starting bid: " + auction.getStartingBid() + "\n\n");
+            currentBid = new ChatComponentText("Starting bid: " + auction.getStartingBid() + "\n\n");
         }
         
-        StringTextComponent timeLeft;
+        ChatComponentText timeLeft;
         if (auction.getEnd().before(auction.getSyncTimestamp())) {
-            timeLeft = new StringTextComponent("Time Left: Ended!\n\n");
+            timeLeft = new ChatComponentText("Time Left: Ended!\n\n");
         } else {
             Duration time = Duration.between(auction.getSyncTimestamp().toInstant(), auction.getEnd().toInstant());
             String timeLeftString = "";
@@ -81,7 +81,7 @@ public class AuctionsBookInfo implements IBookInfo {
                 timeLeftString += time.getSeconds() + " second" + (time.getSeconds() > 1 ? "s" : "") + " ";
                 time = time.minusSeconds(time.getSeconds());
             }
-            timeLeft = new StringTextComponent("Time Left: " + timeLeftString + "\n\n");
+            timeLeft = new ChatComponentText("Time Left: " + timeLeftString + "\n\n");
         }
         
         root.appendSibling(itemTitle);

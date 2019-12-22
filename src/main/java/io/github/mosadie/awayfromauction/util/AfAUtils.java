@@ -4,9 +4,13 @@ import java.util.UUID;
 
 import io.github.mosadie.awayfromauction.AwayFromAuction;
 import io.github.mosadie.awayfromauction.util.Auction.Bid;
-import net.minecraft.util.datafix.fixes.BlockStateFlatteningMap;
-import net.minecraft.util.datafix.fixes.ItemIntIDToString;
-import net.minecraft.util.text.TextFormatting;
+import net.minecraft.init.Items;
+import net.minecraft.item.ItemEditableBook;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagList;
+import net.minecraft.nbt.NBTTagString;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.IChatComponent;
 
 public class AfAUtils {
     public static String addHyphens(String uuid) {
@@ -21,29 +25,29 @@ public class AfAUtils {
         return uuid.replace("-","");
     }
     
-    public static TextFormatting getColorFromTier(String tier) {
+    public static EnumChatFormatting getColorFromTier(String tier) {
         switch(tier) {
             case "COMMON":
-            return TextFormatting.GRAY;
+            return EnumChatFormatting.GRAY;
             
             case "UNCOMMON":
-            return TextFormatting.GREEN;
+            return EnumChatFormatting.GREEN;
             
             case "RARE":
-            return TextFormatting.DARK_BLUE;
+            return EnumChatFormatting.DARK_BLUE;
             
             case "EPIC":
-            return TextFormatting.DARK_PURPLE;
+            return EnumChatFormatting.DARK_PURPLE;
             
             case "LEGENDARY":
-            return TextFormatting.GOLD;
+            return EnumChatFormatting.GOLD;
             
             case "SPECIAL":
-            return TextFormatting.LIGHT_PURPLE;
+            return EnumChatFormatting.LIGHT_PURPLE;
             
             default:
             AwayFromAuction.getLogger().warn("Unknown tier type! " + tier);
-            return TextFormatting.GRAY;
+            return EnumChatFormatting.GRAY;
         }
     }
     
@@ -63,6 +67,7 @@ public class AfAUtils {
         return false;
     }
     
+    /*
     public static String convertIDtoRegName(int itemId, String itemName) {
         switch(itemId) {
             case 409:
@@ -96,8 +101,28 @@ public class AfAUtils {
             }
         }
     }
+    */
 
     public static String formatCoins(long coins) {
         return String.format("%,d", coins);
+    }
+
+    public static ItemStack convertBookInfoToBook(IBookInfo bookInfo) {
+        ItemStack bookStack = new ItemStack(new ItemEditableBook());
+        bookStack.getTagCompound().setString("title","AwayFromAuction");
+        bookStack.getTagCompound().setString("author","MoSadie");
+
+        NBTTagList pages = bookStack.getTagCompound().getTagList("pages", 8);
+        for(int i = 0; i < bookInfo.getTotalPages(); i++) {
+            pages.set(i, new NBTTagString(IChatComponent.Serializer.componentToJson(bookInfo.getPageContent(i))));
+        }
+
+        return bookStack;
+    }
+
+    public static void displayBook(ItemStack book) {
+        if (book == null || !book.getItem().equals(Items.written_book)) {
+            return;
+        }
     }
 }
