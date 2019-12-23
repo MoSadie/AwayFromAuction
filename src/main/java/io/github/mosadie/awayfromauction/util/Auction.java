@@ -50,7 +50,7 @@ public class Auction {
 
         int coopSize = auctionData.get("coop").getAsJsonArray().size();
         coop = new UUID[auctionData.get("coop").getAsJsonArray().size()];
-        for(int i = 0; i < coopSize; i++) {
+        for (int i = 0; i < coopSize; i++) {
             coop[i] = UUID.fromString(addHyphens(auctionData.get("coop").getAsJsonArray().get(i).getAsString()));
         }
 
@@ -74,10 +74,12 @@ public class Auction {
             } else {
                 bytes = auctionData.get("item_bytes").getAsString();
             }
-            Base64InputStream is = new Base64InputStream(new ByteArrayInputStream(bytes.getBytes(StandardCharsets.UTF_8)));
+            Base64InputStream is = new Base64InputStream(
+                    new ByteArrayInputStream(bytes.getBytes(StandardCharsets.UTF_8)));
             nbt = CompressedStreamTools.readCompressed(is);
         } catch (IOException ioException) {
-            AwayFromAuction.getLogger().error("Exception occured creating ItemStack from item_bytes: " + ioException.getLocalizedMessage());
+            AwayFromAuction.getLogger().error(
+                    "Exception occured creating ItemStack from item_bytes: " + ioException.getLocalizedMessage());
             AwayFromAuction.getLogger().catching(ioException);
         }
 
@@ -91,15 +93,16 @@ public class Auction {
         }
 
         claimed = auctionData.get("claimed").getAsBoolean();
-        
+
         int claimedBidderSize = auctionData.get("claimed_bidders").getAsJsonArray().size();
         claimedBidders = new UUID[claimedBidderSize];
         for (int i = 0; i < claimedBidderSize; i++) {
-            claimedBidders[i] = UUID.fromString(addHyphens(auctionData.get("claimed_bidders").getAsJsonArray().get(i).getAsString()));
+            claimedBidders[i] = UUID
+                    .fromString(addHyphens(auctionData.get("claimed_bidders").getAsJsonArray().get(i).getAsString()));
         }
 
         highestBidAmount = auctionData.get("highest_bid_amount").getAsInt();
-        
+
         int bidsSize = auctionData.get("bids").getAsJsonArray().size();
         bids = new Bid[bidsSize];
         for (int i = 0; i < bidsSize; i++) {
@@ -111,7 +114,7 @@ public class Auction {
         auctionUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
         ownerUUID = Minecraft.getMinecraft().thePlayer.getUniqueID();
         ownerProfileUUID = UUID.fromString("00000000-0000-0000-0000-000000000000");
-        coop = new UUID[] {Minecraft.getMinecraft().thePlayer.getUniqueID()};
+        coop = new UUID[] { Minecraft.getMinecraft().thePlayer.getUniqueID() };
         start = new Date();
         end = new Date();
         syncTimestamp = new Date();
@@ -124,9 +127,9 @@ public class Auction {
         startingBid = 0;
         itemStack = null;
         claimed = false;
-        claimedBidders =new UUID[] {Minecraft.getMinecraft().thePlayer.getUniqueID()};
+        claimedBidders = new UUID[] { Minecraft.getMinecraft().thePlayer.getUniqueID() };
         highestBidAmount = 0;
-        bids = new Bid[] {new Bid()};
+        bids = new Bid[] { new Bid() };
         afa = null;
     }
 
@@ -203,7 +206,7 @@ public class Auction {
             return null;
         }
 
-        return bids[bids.length-1];
+        return bids[bids.length - 1];
     }
 
     public int getHighestBidAmount() {
@@ -223,7 +226,7 @@ public class Auction {
         private final UUID bidderUUID;
         private final int amount;
         private final Date timestamp;
-    
+
         public Bid(JsonObject bidData) {
             auctionUUID = UUID.fromString(addHyphens(bidData.get("auction_id").getAsString()));
             bidderUUID = UUID.fromString(addHyphens(bidData.get("bidder").getAsString()));
@@ -256,7 +259,7 @@ public class Auction {
     }
 
     private static String addHyphens(String uuid) {
-        return uuid.replaceAll("(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})", "$1-$2-$3-$4-$5"); // Shamelessly stolen from StackOverflow  
+        return uuid.replaceAll("(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})", "$1-$2-$3-$4-$5"); // Shamelessly stolen
+                                                                                               // from StackOverflow
     }
 }
-

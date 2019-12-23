@@ -1,6 +1,8 @@
 package io.github.mosadie.awayfromauction;
 
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.UUID;
 
 import io.github.mosadie.awayfromauction.gui.AuctionBookInfo;
@@ -9,6 +11,7 @@ import io.github.mosadie.awayfromauction.gui.AuctionSelectItemBookInfo;
 import io.github.mosadie.awayfromauction.gui.AuctionsBookInfo;
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
+import io.github.mosadie.awayfromauction.util.IBookInfo;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiMultiplayer;
@@ -22,8 +25,11 @@ import net.minecraft.command.CommandBase;
 import net.minecraft.command.CommandException;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.event.ClickEvent;
+import net.minecraft.item.ItemStack;
 import net.minecraft.realms.RealmsBridge;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.IChatComponent;
 
 public class AfACommand extends CommandBase {
 
@@ -52,79 +58,89 @@ public class AfACommand extends CommandBase {
     @Override
     public void processCommand(ICommandSender sender, String[] args) throws CommandException {
         AwayFromAuction.getLogger().debug("Command received! Command: " + CommandBase.buildString(args, 0));
-        
+
         mod.createSyncThread();
-        
+
         if (args.length < 1) {
-            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
+            Minecraft.getMinecraft().thePlayer
+                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
             return;
         }
-        
+
         switch (args[0].toLowerCase()) {
-            case "key":
+        case "key":
             if (args.length < 2) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
                 return;
             }
-            
+
             String key = args[1];
-            
+
             if (mod.validateAPIKey(key)) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.start"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.start"));
                 if (mod.testAPIKey(key)) {
-                    Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.succeed"));
+                    Minecraft.getMinecraft().thePlayer
+                            .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.succeed"));
                     mod.setAPIKey(key);
-                    Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.key.success"));
+                    Minecraft.getMinecraft().thePlayer
+                            .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.key.success"));
                     return;
                 } else {
-                    Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
+                    Minecraft.getMinecraft().thePlayer
+                            .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
                     return;
                 }
             } else {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.key.fail"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.key.fail"));
                 return;
             }
-            
-            case "test":
-            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.start"));
+
+        case "test":
+            Minecraft.getMinecraft().thePlayer
+                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.start"));
             if (mod.testAPIKey(Config.HYPIXEL_API_KEY)) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.succeed"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.succeed"));
             } else {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
             }
             break;
-            
-            case "stats":
-            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.stats",
-            mod.getAuctions().length,
-            mod.getAuctionItems().length,
-            mod.getAuctionsByPlayer(Minecraft.getMinecraft().thePlayer.getUniqueID()).length,
-            mod.getBidOnAuctions().length,
-            AfAUtils.formatCoins(mod.getTotalCoins())));
+
+        case "stats":
+            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent(
+                    "command.stats", mod.getAuctions().length, mod.getAuctionItems().length,
+                    mod.getAuctionsByPlayer(Minecraft.getMinecraft().thePlayer.getUniqueID()).length,
+                    mod.getBidOnAuctions().length, AfAUtils.formatCoins(mod.getTotalCoins())));
             break;
-            
-            case "searchuser":
+
+        case "searchuser":
             if (args.length != 2) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.help"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.help"));
                 return;
             }
             UUID userUUID = mod.getPlayerUUID(args[1]);
             if (userUUID == null) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.notfound"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.notfound"));
                 return;
             }
             Auction[] userAuctions = mod.getAuctionsByPlayer(userUUID);
             AuctionSearchBookInfo searchBookInfo = new AuctionSearchBookInfo(userAuctions, args[1]);
-            Minecraft.getMinecraft().addScheduledTask(() -> {
-                Minecraft.getMinecraft().displayGuiScreen(new GuiScreenBook(Minecraft.getMinecraft().thePlayer, AfAUtils.convertBookInfoToBook(searchBookInfo), false));
-            });
+            ItemStack searchBookItemStack = AfAUtils.convertBookInfoToBook(searchBookInfo);
+            AfAUtils.displayBook(searchBookItemStack);
             break;
-            
-            case "search":
+
+        case "search":
             if (args.length < 2) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.search.help"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.search.help"));
                 return;
-            } 
+            }
             String item = args[1];
             for (int i = 2; i < args.length; i++) {
                 item += " " + args[i];
@@ -135,128 +151,127 @@ public class AfACommand extends CommandBase {
             } else {
                 String[] possibleItems = mod.getAuctionItems(item);
                 if (possibleItems.length == 0) {
-                    Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.search.itemnotfound"));
+                    Minecraft.getMinecraft().thePlayer
+                            .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.search.itemnotfound"));
                     return;
                 } else if (possibleItems.length == 1) {
                     itemAuctions = mod.getAuctionsByItem(possibleItems[0]);
                 } else {
                     AuctionSelectItemBookInfo itemSelectBookInfo = new AuctionSelectItemBookInfo(possibleItems, mod);
-                    Minecraft.getMinecraft().addScheduledTask(() -> {
-                        Minecraft.getMinecraft().displayGuiScreen(new GuiScreenBook(Minecraft.getMinecraft().thePlayer, AfAUtils.convertBookInfoToBook(itemSelectBookInfo), false));
-                    });
+                    AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(itemSelectBookInfo));
                     return;
                 }
             }
             AuctionSearchBookInfo itemAuctionSearchBookInfo = new AuctionSearchBookInfo(itemAuctions, item);
-            Minecraft.getMinecraft().addScheduledTask(() -> {
-                Minecraft.getMinecraft().displayGuiScreen(new GuiScreenBook(Minecraft.getMinecraft().thePlayer, AfAUtils.convertBookInfoToBook(itemAuctionSearchBookInfo), false));
-            });
+            AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(itemAuctionSearchBookInfo));
             break;
-            
-            case "joinhypixel":
+
+        case "joinhypixel":
             if (mod.onHypixel()) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.joinhypixel.fail"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.joinhypixel.fail"));
                 return;
             }
-            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.joinhypixel.start"));
-            
-            GuiYesNo confirmScreen = new GuiYesNo(new YesNoCallback(), AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.title").getFormattedText(), AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.body").getFormattedText(), 0);
+            Minecraft.getMinecraft().thePlayer
+                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.joinhypixel.start"));
+
+            GuiYesNo confirmScreen = new GuiYesNo(new YesNoCallback(),
+                    AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.title").getFormattedText(),
+                    AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.body").getFormattedText(), 0);
             Minecraft.getMinecraft().addScheduledTask(() -> {
                 Minecraft.getMinecraft().displayGuiScreen(confirmScreen);
             });
             break;
-            
-            case "viewall":
+
+        case "viewall":
             Auction[] allAuctions = mod.getAuctions();
             AuctionsBookInfo auctionsBookInfo = new AuctionsBookInfo(allAuctions);
-            Minecraft.getMinecraft().addScheduledTask(() -> {
-                Minecraft.getMinecraft().displayGuiScreen(new GuiScreenBook(Minecraft.getMinecraft().thePlayer, AfAUtils.convertBookInfoToBook(auctionsBookInfo), false));
-            });
+            AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(auctionsBookInfo));
             break;
-            
-            case "viewbids":
+
+        case "viewbids":
             Auction[] bidAuctions = mod.getBidOnAuctions();
             AuctionsBookInfo bidAuctionsBookInfo = new AuctionsBookInfo(bidAuctions);
-            Minecraft.getMinecraft().addScheduledTask(() -> {
-                Minecraft.getMinecraft().displayGuiScreen(new GuiScreenBook(Minecraft.getMinecraft().thePlayer, AfAUtils.convertBookInfoToBook(bidAuctionsBookInfo), false));
-            });
+            AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(bidAuctionsBookInfo));
             break;
-            
-            case "supriseme":
-            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.supriseme.success"));
+
+        case "supriseme":
+            Minecraft.getMinecraft().thePlayer
+                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.supriseme.success"));
             Auction[] auctions = mod.getAuctions();
             if (auctions.length == 0) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("error.notsync",Config.GENERAL_REFRESH_DELAY));
+                Minecraft.getMinecraft().thePlayer.addChatMessage(
+                        AwayFromAuction.getTranslatedTextComponent("error.notsync", Config.GENERAL_REFRESH_DELAY));
                 return;
             }
             Auction randAuction = auctions[new Random().nextInt(auctions.length)];
-            args = new String[] {"view", randAuction.getAuctionUUID().toString()};
+            args = new String[] { "view", randAuction.getAuctionUUID().toString() };
             // Fall to view case
-            
-            case "view":
+
+        case "view":
             if (args.length < 2) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.view.usage"));
+                Minecraft.getMinecraft().thePlayer
+                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.view.usage"));
                 return;
             }
-            
+
             UUID auctionUUID;
-            
+
             if (args[1].contains("-")) {
                 auctionUUID = UUID.fromString(args[1]);
             } else {
                 auctionUUID = UUID.fromString(AfAUtils.addHyphens(args[1]));
             }
-            
+
             Auction auction = mod.getAuction(auctionUUID);
             AuctionBookInfo auctionBookInfo = new AuctionBookInfo(auction);
-            
-            ChatComponentTranslation message = AwayFromAuction.getTranslatedTextComponent("command.view.success", auction.getAuctionUUID().toString());
-            message.getChatStyle().setUnderlined(true).setChatClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));
-            
+
+            ChatComponentTranslation message = AwayFromAuction.getTranslatedTextComponent("command.view.success",
+                    auction.getAuctionUUID().toString());
+            message.getChatStyle().setUnderlined(true).setChatClickEvent(new ClickEvent(
+                    ClickEvent.Action.SUGGEST_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));
+
             Minecraft.getMinecraft().thePlayer.addChatMessage(message);
-            
-            Minecraft.getMinecraft().addScheduledTask(() -> {
-                Minecraft.getMinecraft().displayGuiScreen(new GuiScreenBook(Minecraft.getMinecraft().thePlayer, AfAUtils.convertBookInfoToBook(auctionBookInfo), false));
-            });
+
+            AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(auctionBookInfo));
             break;
-            
-            default:
-            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
+
+        default:
+            Minecraft.getMinecraft().thePlayer
+                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
         }
     }
-    
+
     private class YesNoCallback implements GuiYesNoCallback {
-        
+
         @Override
         public void confirmClicked(boolean result, int id) {
             if (result) {
                 Minecraft.getMinecraft().addScheduledTask(() -> {
-                    
-                    //Copied from GuiIngameMenu's disconnect/quit button
+
+                    // Copied from GuiIngameMenu's disconnect/quit button
                     boolean flag = Minecraft.getMinecraft().isIntegratedServerRunning();
                     boolean flag1 = Minecraft.getMinecraft().func_181540_al();
 
                     Minecraft.getMinecraft().theWorld.sendQuittingDisconnectingPacket();
-                    Minecraft.getMinecraft().loadWorld((WorldClient)null);
-                    
-                    if (flag)
-                    {
+                    Minecraft.getMinecraft().loadWorld((WorldClient) null);
+
+                    if (flag) {
                         Minecraft.getMinecraft().displayGuiScreen(new GuiMainMenu());
-                    }
-                    else if (flag1)
-                    {
+                    } else if (flag1) {
                         RealmsBridge realmsbridge = new RealmsBridge();
                         realmsbridge.switchToRealms(new GuiMainMenu());
-                    }
-                    else
-                    {
+                    } else {
                         Minecraft.getMinecraft().displayGuiScreen(new GuiMultiplayer(new GuiMainMenu()));
                     }
-                    
+
                     // Connect to Hypixel
-                    ServerData hypixelServer = new ServerData("Hypixel","mc.hypixel.net",false);
-                    GuiConnecting connectScreen = new GuiConnecting(Minecraft.getMinecraft().currentScreen, Minecraft.getMinecraft(), hypixelServer);
-                    //ConnectingScreen screen = new ConnectingScreen(Minecraft.getMinecraft().currentScreen, Minecraft.getMinecraft(), hypixelServer);
+                    ServerData hypixelServer = new ServerData("Hypixel", "mc.hypixel.net", false);
+                    GuiConnecting connectScreen = new GuiConnecting(Minecraft.getMinecraft().currentScreen,
+                            Minecraft.getMinecraft(), hypixelServer);
+                    // ConnectingScreen screen = new
+                    // ConnectingScreen(Minecraft.getMinecraft().currentScreen,
+                    // Minecraft.getMinecraft(), hypixelServer);
                     Minecraft.getMinecraft().displayGuiScreen(connectScreen);
                 });
             } else {
@@ -265,6 +280,6 @@ public class AfACommand extends CommandBase {
                 });
             }
         }
-        
+
     }
 }

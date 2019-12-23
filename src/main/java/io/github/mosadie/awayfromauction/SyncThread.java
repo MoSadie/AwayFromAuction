@@ -19,11 +19,11 @@ import net.minecraft.client.Minecraft;
 public class SyncThread extends Thread {
     private final AwayFromAuction afa;
     private boolean stopFlag = false;
-    
+
     public SyncThread(AwayFromAuction mod) {
         this.afa = mod;
     }
-    
+
     @Override
     public void run() {
         while (!this.isInterrupted() && !stopFlag && Minecraft.getMinecraft() != null) {
@@ -37,11 +37,13 @@ public class SyncThread extends Thread {
             }
         }
     }
-    
+
     /**
-    * Syncs all active auction data from the Hypixel API.
-    * Sorts that data into multiple groups and calls {@link AwayFromAuction#updateAuctions(Map, Map, Map, List)} to update the auction cache.
-    */
+     * Syncs all active auction data from the Hypixel API. Sorts that data into
+     * multiple groups and calls
+     * {@link AwayFromAuction#updateAuctions(Map, Map, Map, List)} to update the
+     * auction cache.
+     */
     private void sync() {
         if (Minecraft.getMinecraft().thePlayer == null) {
             return;
@@ -58,21 +60,23 @@ public class SyncThread extends Thread {
             if (reply.getAuctions().size() > 0) {
                 for (int i = 0; i < reply.getAuctions().size(); i++) {
                     Auction tmpAuction = new Auction(reply.getAuctions().get(i).getAsJsonObject(), afa);
-                    
+
                     allAuctions.put(tmpAuction.getAuctionUUID(), tmpAuction);
-                    
+
                     if (!playerAuctionMap.containsKey(tmpAuction.getAuctionOwnerUUID())) {
                         playerAuctionMap.put(tmpAuction.getAuctionOwnerUUID(), new ArrayList<>());
                     }
                     playerAuctionMap.get(tmpAuction.getAuctionOwnerUUID()).add(tmpAuction);
-                    
+
                     if (!itemAuctionMap.containsKey(tmpAuction.getItemName().toLowerCase())) {
                         itemAuctionMap.put(tmpAuction.getItemName().toLowerCase(), new ArrayList<>());
                     }
                     itemAuctionMap.get(tmpAuction.getItemName().toLowerCase()).add(tmpAuction);
-                    
-                    if (AfAUtils.bidsContainUUID(tmpAuction.getBids(), Minecraft.getMinecraft().thePlayer.getUniqueID())) bidAuctions.add(tmpAuction);
-                    
+
+                    if (AfAUtils.bidsContainUUID(tmpAuction.getBids(),
+                            Minecraft.getMinecraft().thePlayer.getUniqueID()))
+                        bidAuctions.add(tmpAuction);
+
                     for (Bid bid : tmpAuction.getBids()) {
                         totalCoins += bid.getAmount();
                     }
@@ -84,21 +88,23 @@ public class SyncThread extends Thread {
                 SkyBlockAuctionsReply replyPage = hypixelApi.getSkyBlockAuctions(p).get(1, TimeUnit.MINUTES);
                 for (int i = 0; i < replyPage.getAuctions().size(); i++) {
                     Auction tmpAuction = new Auction(replyPage.getAuctions().get(i).getAsJsonObject(), afa);
-                    
+
                     allAuctions.put(tmpAuction.getAuctionUUID(), tmpAuction);
-                    
+
                     if (!playerAuctionMap.containsKey(tmpAuction.getAuctionOwnerUUID())) {
                         playerAuctionMap.put(tmpAuction.getAuctionOwnerUUID(), new ArrayList<>());
                     }
                     playerAuctionMap.get(tmpAuction.getAuctionOwnerUUID()).add(tmpAuction);
-                    
+
                     if (!itemAuctionMap.containsKey(tmpAuction.getItemName().toLowerCase())) {
                         itemAuctionMap.put(tmpAuction.getItemName().toLowerCase(), new ArrayList<>());
                     }
                     itemAuctionMap.get(tmpAuction.getItemName().toLowerCase()).add(tmpAuction);
-                    
-                    if (AfAUtils.bidsContainUUID(tmpAuction.getBids(), Minecraft.getMinecraft().thePlayer.getUniqueID())) bidAuctions.add(tmpAuction);
-                    
+
+                    if (AfAUtils.bidsContainUUID(tmpAuction.getBids(),
+                            Minecraft.getMinecraft().thePlayer.getUniqueID()))
+                        bidAuctions.add(tmpAuction);
+
                     for (Bid bid : tmpAuction.getBids()) {
                         totalCoins += bid.getAmount();
                     }
@@ -107,13 +113,14 @@ public class SyncThread extends Thread {
             afa.updateAuctions(allAuctions, playerAuctionMap, itemAuctionMap, bidAuctions);
             afa.setTotalCoins(totalCoins);
         } catch (InterruptedException | ExecutionException | TimeoutException | NullPointerException e) {
-            AwayFromAuction.getLogger().warn("An exception occured while attempting to sync auction details: " + e.getLocalizedMessage());
+            AwayFromAuction.getLogger()
+                    .warn("An exception occured while attempting to sync auction details: " + e.getLocalizedMessage());
             AwayFromAuction.getLogger().catching(e);
         }
     }
-    
+
     public void stopFlag() {
         stopFlag = true;
     }
-    
+
 }
