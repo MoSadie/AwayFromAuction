@@ -179,7 +179,12 @@ public class AfACommand extends CommandBase {
                     AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.title").getFormattedText(),
                     AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.body").getFormattedText(), 0);
             Minecraft.getMinecraft().addScheduledTask(() -> {
-                Minecraft.getMinecraft().displayGuiScreen(confirmScreen);
+                new Timer().schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        Minecraft.getMinecraft().displayGuiScreen(confirmScreen);
+                    }
+                }, 50);
             });
             break;
 

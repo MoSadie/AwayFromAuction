@@ -368,10 +368,11 @@ public class AwayFromAuction {
         HypixelAPI tmpApi = new HypixelAPI(apiKey);
 
         try {
-            tmpApi.getPlayerByUuid(Minecraft.getMinecraft().thePlayer.getUniqueID()).get(1, TimeUnit.MINUTES);
+            tmpApi.getPlayerByUuid(UUID.fromString("698fffb6-be83-4fb9-b80e-d799c18b53b5")).get(1, TimeUnit.MINUTES);
             LOGGER.info("API key test passed!");
         } catch (Exception e) {
             LOGGER.warn("API key test failed! Exception: " + e.getLocalizedMessage());
+            LOGGER.catching(e);
             return false;
         }
         return true;

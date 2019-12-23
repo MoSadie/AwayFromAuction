@@ -32,12 +32,15 @@ public class AuctionBookInfo implements IBookInfo {
     public IChatComponent getPageContent(int page) {
         ChatComponentText root = new ChatComponentText("Auction Details for \n");
         ChatComponentText sibling = new ChatComponentText(auction.getItemName()
-                + (auction.getItemStack().stackSize > 0 ? " x" + auction.getItemStack().stackSize : "") + "\n\n");
+                + (auction.getItemStack().stackSize > 0 ? " x" + auction.getItemStack().stackSize : ""));
         sibling.getChatStyle().setUnderlined(true).setColor(AfAUtils.getColorFromTier(auction.getTier()))
                 .setChatHoverEvent(
                         new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(auction.getItemLore())));
 
+        ChatComponentText newlines = new ChatComponentText("\n\n");
+
         root.appendSibling(sibling);
+        root.appendSibling(newlines);
 
         switch (page) {
         case 0: // Overview

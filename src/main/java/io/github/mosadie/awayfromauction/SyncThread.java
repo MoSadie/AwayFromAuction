@@ -46,6 +46,7 @@ public class SyncThread extends Thread {
      */
     private void sync() {
         if (Minecraft.getMinecraft().thePlayer == null) {
+            AwayFromAuction.getLogger().info("Player is null, skipping sync.");
             return;
         }
         HypixelAPI hypixelApi = afa.getOrRefreshHypixelAPI();
@@ -57,6 +58,7 @@ public class SyncThread extends Thread {
         try {
             SkyBlockAuctionsReply reply = hypixelApi.getSkyBlockAuctions(0).get(1, TimeUnit.MINUTES);
             int pageTotal = reply.getTotalPages();
+            AwayFromAuction.getLogger().info("Syncing " + pageTotal + " pages of auctions");
             if (reply.getAuctions().size() > 0) {
                 for (int i = 0; i < reply.getAuctions().size(); i++) {
                     Auction tmpAuction = new Auction(reply.getAuctions().get(i).getAsJsonObject(), afa);
@@ -114,7 +116,7 @@ public class SyncThread extends Thread {
             afa.setTotalCoins(totalCoins);
         } catch (InterruptedException | ExecutionException | TimeoutException | NullPointerException e) {
             AwayFromAuction.getLogger()
-                    .warn("An exception occured while attempting to sync auction details: " + e.getLocalizedMessage());
+                    .warn("An exception occured while attempting to sync auction details: " + e.getMessage());
             AwayFromAuction.getLogger().catching(e);
         }
     }
