@@ -154,8 +154,9 @@ public class AwayFromAuction {
         }
         for (Auction auction : auctionsToCheck) {
             if (auction.getEnd().getTime() - auction.getSyncTimestamp().getTime() < (5 * 60)) {
-                LOGGER.info("Auction ending soon: " + auction.getAuctionUUID());
-                Minecraft.getMinecraft().thePlayer.addChatMessage(createEndingSoonText(auction));
+                IChatComponent message = createEndingSoonText(auction);
+                LOGGER.info(message.getUnformattedText());
+                Minecraft.getMinecraft().thePlayer.addChatMessage(message);
             }
         }
     }
@@ -212,8 +213,9 @@ public class AwayFromAuction {
             if (auctionMap.containsKey(auction.getAuctionUUID())) {
                 Auction other = auctionMap.get(auction.getAuctionUUID());
                 if (other.getHighestBidAmount() > auction.getHighestBidAmount()) {
-                    LOGGER.info("New bid on auction " + auction.getAuctionUUID());
-                    Minecraft.getMinecraft().thePlayer.addChatMessage(createNewBidText(other));
+                    IChatComponent message = createNewBidText(auction);
+                    LOGGER.info(message.getUnformattedText());
+                    Minecraft.getMinecraft().thePlayer.addChatMessage(message);
                 }
             }
         }
@@ -276,7 +278,9 @@ public class AwayFromAuction {
                 Auction newAuction = auctionMap.get(currentAuction.getAuctionUUID());
                 if (currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount() && newAuction
                         .getHighestBid().getBidderUUID().equals(Minecraft.getMinecraft().thePlayer.getUniqueID())) {
-                    Minecraft.getMinecraft().thePlayer.addChatMessage(createOutbidText(currentAuction, newAuction));
+                    IChatComponent message = createOutbidText(currentAuction, newAuction);
+                    LOGGER.info(message.getUnformattedText());
+                    Minecraft.getMinecraft().thePlayer.addChatMessage(message);
                 }
             }
         }
@@ -725,5 +729,13 @@ public class AwayFromAuction {
             syncThread.interrupt();
             syncThread = null;
         }
+    }
+
+    void clearCache() {
+        allAuctions = new HashMap<>();
+        playerAuctionMap = new HashMap<>();
+        itemAuctionMap = new HashMap<>();
+        bidAuctions = new ArrayList<>();
+        totalCoins = 0;
     }
 }

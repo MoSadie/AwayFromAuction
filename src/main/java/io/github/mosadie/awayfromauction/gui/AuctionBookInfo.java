@@ -8,7 +8,6 @@ import io.github.mosadie.awayfromauction.util.IBookInfo;
 import net.minecraft.event.ClickEvent;
 import net.minecraft.event.HoverEvent;
 import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
 
 public class AuctionBookInfo implements IBookInfo {

@@ -39,11 +39,13 @@ public class AuctionsBookInfo implements IBookInfo {
         Auction auction = auctions[page];
 
         ChatComponentText itemTitle = new ChatComponentText(
-                auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : "") + "\n\n");
+                auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : ""));
         itemTitle.getChatStyle().setUnderlined(true).setColor(AfAUtils.getColorFromTier(auction.getTier()))
                 .setChatHoverEvent(
                         new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(auction.getItemLore())));
 
+        ChatComponentText newLine = new ChatComponentText("\n\n");
+        
         ChatComponentText owner = new ChatComponentText("Auction Owner: ");
         ChatComponentText ownerLink = new ChatComponentText(
                 auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
@@ -90,6 +92,7 @@ public class AuctionsBookInfo implements IBookInfo {
         }
 
         root.appendSibling(itemTitle);
+        root.appendSibling(newLine);
         root.appendSibling(owner);
         root.appendSibling(currentBid);
         root.appendSibling(timeLeft);

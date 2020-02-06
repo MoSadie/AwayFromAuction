@@ -8,7 +8,6 @@ import io.github.mosadie.awayfromauction.AwayFromAuction;
 import io.github.mosadie.awayfromauction.util.Auction.Bid;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreenBook;
-import net.minecraft.init.Items;
 import net.minecraft.item.ItemEditableBook;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
