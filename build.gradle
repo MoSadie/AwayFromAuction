@@ -16,10 +16,10 @@ apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
 
 if (project.property("version").equals("unspecified"))
-    version = 'v1.0.0'
+    version = '1.0.0'
 
 group = 'io.github.mosadie.awayfromauction' // http://maven.apache.org/guides/mini/guide-naming-conventions.html
-archivesBaseName = 'awayfromauction'
+archivesBaseName = 'awayfromauction-MC1.8.9'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 

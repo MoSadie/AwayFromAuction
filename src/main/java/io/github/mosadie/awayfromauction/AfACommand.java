@@ -40,7 +40,9 @@ import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.realms.RealmsBridge;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
+import net.minecraft.util.StatCollector;
 
 public class AfACommand extends CommandBase {
 
@@ -81,86 +83,95 @@ public class AfACommand extends CommandBase {
         }
 
         switch (args[0].toLowerCase()) {
-        case "debug":
-            switch (args[1].toLowerCase()) {
-            case "on":
-                mod.stopSyncThread();
-                mod.clearCache();
-                debugAuctionJson = new JsonObject();
-                debugAuctionJson.add("uuid", new JsonPrimitive("00000000000000000000000000000001"));
-                debugAuctionJson.add("auctioneer", new JsonPrimitive("00000000000000000000000000000002"));
-                debugAuctionJson.add("profile_id", new JsonPrimitive("00000000000000000000000000000003"));
+        // case "debug":
+        // switch (args[1].toLowerCase()) {
+        // case "on":
+        // mod.stopSyncThread();
+        // mod.clearCache();
+        // debugAuctionJson = new JsonObject();
+        // debugAuctionJson.add("uuid", new
+        // JsonPrimitive("00000000000000000000000000000001"));
+        // debugAuctionJson.add("auctioneer", new
+        // JsonPrimitive("00000000000000000000000000000002"));
+        // debugAuctionJson.add("profile_id", new
+        // JsonPrimitive("00000000000000000000000000000003"));
 
-                JsonArray debugCoopArray = new JsonArray();
-                debugCoopArray.add(new JsonPrimitive("00000000000000000000000000000002"));
-                debugAuctionJson.add("coop", debugCoopArray);
+        // JsonArray debugCoopArray = new JsonArray();
+        // debugCoopArray.add(new JsonPrimitive("00000000000000000000000000000002"));
+        // debugAuctionJson.add("coop", debugCoopArray);
 
-                debugAuctionJson.add("start", new JsonPrimitive(new Date().getTime()));
-                debugAuctionJson.add("end", new JsonPrimitive(new Date().getTime() + 600));
-                debugAuctionJson.add("item_name", new JsonPrimitive("Debug Auction Item"));
-                debugAuctionJson.add("item_lore", new JsonPrimitive("Debuce Auction Item Lore\nMultiline!"));
-                debugAuctionJson.add("extra", new JsonPrimitive("Debug Auction Extra"));
-                debugAuctionJson.add("category", new JsonPrimitive("Debug"));
-                debugAuctionJson.add("tier", new JsonPrimitive("SPECIAL"));
-                debugAuctionJson.add("starting_bid", new JsonPrimitive(100));
+        // debugAuctionJson.add("start", new JsonPrimitive(new Date().getTime()));
+        // debugAuctionJson.add("end", new JsonPrimitive(new Date().getTime() + 600));
+        // debugAuctionJson.add("item_name", new JsonPrimitive("Debug Auction Item"));
+        // debugAuctionJson.add("item_lore", new JsonPrimitive("Debuce Auction Item
+        // Lore\nMultiline!"));
+        // debugAuctionJson.add("extra", new JsonPrimitive("Debug Auction Extra"));
+        // debugAuctionJson.add("category", new JsonPrimitive("Debug"));
+        // debugAuctionJson.add("tier", new JsonPrimitive("SPECIAL"));
+        // debugAuctionJson.add("starting_bid", new JsonPrimitive(100));
 
-                try {
-                    NBTTagCompound debugNbtTag = new NBTTagCompound();
-                    ItemStack debugItemStack = new ItemStack(Blocks.stone, 12);
-                    NBTTagList list = new NBTTagList();
-                    list.appendTag(debugItemStack.serializeNBT());
-                    debugNbtTag.setTag("i", list);
+        // try {
+        // NBTTagCompound debugNbtTag = new NBTTagCompound();
+        // ItemStack debugItemStack = new ItemStack(Blocks.stone, 12);
+        // NBTTagList list = new NBTTagList();
+        // list.appendTag(debugItemStack.serializeNBT());
+        // debugNbtTag.setTag("i", list);
 
-                    ByteArrayOutputStream debugNBTOutputStream = new ByteArrayOutputStream();
-                    CompressedStreamTools.writeCompressed(debugNbtTag, debugNBTOutputStream);
-                    debugAuctionJson.add("item_bytes", new JsonPrimitive(debugNBTOutputStream.toString()));
-                } catch (IOException e) {
-                    AwayFromAuction.getLogger().error("Something went wrong creating debug auction.", e);
-                    debugAuctionJson.add("item_bytes", new JsonPrimitive(""));
-                }
+        // ByteArrayOutputStream debugNBTOutputStream = new ByteArrayOutputStream();
+        // CompressedStreamTools.writeCompressed(debugNbtTag, debugNBTOutputStream);
+        // debugAuctionJson.add("item_bytes", new
+        // JsonPrimitive(debugNBTOutputStream.toString()));
+        // } catch (IOException e) {
+        // AwayFromAuction.getLogger().error("Something went wrong creating debug
+        // auction.", e);
+        // debugAuctionJson.add("item_bytes", new JsonPrimitive(""));
+        // }
 
-                debugAuctionJson.add("claimed", new JsonPrimitive(false));
+        // debugAuctionJson.add("claimed", new JsonPrimitive(false));
 
-                JsonArray debugClaimedBidders = new JsonArray();
-                debugClaimedBidders.add(
-                        new JsonPrimitive(AfAUtils.removeHyphens(Minecraft.getMinecraft().thePlayer.getUniqueID())));
-                debugAuctionJson.add("claimed_bidders", debugClaimedBidders);
-                debugAuctionJson.add("highest_bid_amount", new JsonPrimitive(100));
+        // JsonArray debugClaimedBidders = new JsonArray();
+        // debugClaimedBidders.add(
+        // new
+        // JsonPrimitive(AfAUtils.removeHyphens(Minecraft.getMinecraft().thePlayer.getUniqueID())));
+        // debugAuctionJson.add("claimed_bidders", debugClaimedBidders);
+        // debugAuctionJson.add("highest_bid_amount", new JsonPrimitive(100));
 
-                JsonArray debugBidsArray = new JsonArray();
-                JsonObject debugBid = new JsonObject();
-                debugBid.add("auction_id", new JsonPrimitive("00000000000000000000000000000001"));
-                debugBid.add("bidder",
-                        new JsonPrimitive(AfAUtils.removeHyphens(Minecraft.getMinecraft().thePlayer.getUniqueID())));
-                debugBid.add("amount", new JsonPrimitive(100));
-                debugBid.add("timestamp", new JsonPrimitive(new Date().getTime() - 100));
-                debugBidsArray.add(debugBid);
-                debugAuctionJson.add("bids", debugBidsArray);
+        // JsonArray debugBidsArray = new JsonArray();
+        // JsonObject debugBid = new JsonObject();
+        // debugBid.add("auction_id", new
+        // JsonPrimitive("00000000000000000000000000000001"));
+        // debugBid.add("bidder",
+        // new
+        // JsonPrimitive(AfAUtils.removeHyphens(Minecraft.getMinecraft().thePlayer.getUniqueID())));
+        // debugBid.add("amount", new JsonPrimitive(100));
+        // debugBid.add("timestamp", new JsonPrimitive(new Date().getTime() - 100));
+        // debugBidsArray.add(debugBid);
+        // debugAuctionJson.add("bids", debugBidsArray);
 
-                Auction debugAuction = new Auction(debugAuctionJson, mod);
+        // Auction debugAuction = new Auction(debugAuctionJson, mod);
 
-                Map<UUID, Auction> allAuctions = new HashMap<>();
-                allAuctions.put(debugAuction.getAuctionUUID(), debugAuction);
+        // Map<UUID, Auction> allAuctions = new HashMap<>();
+        // allAuctions.put(debugAuction.getAuctionUUID(), debugAuction);
 
-                Map<UUID, List<Auction>> playerAuctions = new HashMap<>();
-                playerAuctions.put(debugAuction.getAuctionOwnerUUID(), new ArrayList<>());
-                playerAuctions.get(debugAuction.getAuctionOwnerUUID()).add(debugAuction);
+        // Map<UUID, List<Auction>> playerAuctions = new HashMap<>();
+        // playerAuctions.put(debugAuction.getAuctionOwnerUUID(), new ArrayList<>());
+        // playerAuctions.get(debugAuction.getAuctionOwnerUUID()).add(debugAuction);
 
-                Map<String, List<Auction>> itemAuctions = new HashMap<>();
-                itemAuctions.put(debugAuction.getItemName(), new ArrayList<>());
-                itemAuctions.get(debugAuction.getItemName()).add(debugAuction);
+        // Map<String, List<Auction>> itemAuctions = new HashMap<>();
+        // itemAuctions.put(debugAuction.getItemName(), new ArrayList<>());
+        // itemAuctions.get(debugAuction.getItemName()).add(debugAuction);
 
-                List<Auction> bidAuctions = new ArrayList<>();
-                bidAuctions.add(debugAuction);
+        // List<Auction> bidAuctions = new ArrayList<>();
+        // bidAuctions.add(debugAuction);
 
-                mod.updateAuctions(allAuctions, playerAuctions, itemAuctions, bidAuctions);
-                break;
+        // mod.updateAuctions(allAuctions, playerAuctions, itemAuctions, bidAuctions);
+        // break;
 
-            case "off":
-                mod.clearCache();
-                break;
-            }
-            break;
+        // case "off":
+        // mod.clearCache();
+        // break;
+        // }
+        // break;
 
         case "key":
             if (args.length < 2) {
@@ -210,6 +221,14 @@ public class AfACommand extends CommandBase {
                     mod.getAuctionsByPlayer(Minecraft.getMinecraft().thePlayer.getUniqueID()).length,
                     mod.getBidOnAuctions().length, AfAUtils.formatCoins(mod.getTotalCoins())));
             break;
+
+        case "mine":
+        case "me":
+        case "myauctions":
+        case "viewmine":
+        case "viewme":
+            args = new String[] {args[0], Minecraft.getMinecraft().thePlayer.getName()};
+            // Fall to the searchuser command
 
         case "searchuser":
             if (args.length != 2) {
@@ -325,7 +344,7 @@ public class AfACommand extends CommandBase {
             Auction auction = mod.getAuction(auctionUUID);
             AuctionBookInfo auctionBookInfo = new AuctionBookInfo(auction);
 
-            ChatComponentTranslation message = AwayFromAuction.getTranslatedTextComponent("command.view.success",
+            ChatComponentText message = AwayFromAuction.getTranslatedTextComponent("command.view.success",
                     auction.getAuctionUUID().toString());
             message.getChatStyle().setUnderlined(true).setChatClickEvent(new ClickEvent(
                     ClickEvent.Action.SUGGEST_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));

@@ -35,6 +35,7 @@ import net.minecraft.event.HoverEvent;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.IChatComponent;
+import net.minecraft.util.StatCollector;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
@@ -106,8 +107,13 @@ public class AwayFromAuction {
         return LOGGER;
     }
 
-    public static ChatComponentTranslation getTranslatedTextComponent(String key, Object... args) {
-        return new ChatComponentTranslation(MOD_ID + "." + key, args);
+    // public static ChatComponentTranslation getTranslatedTextComponent(String key, Object... args) {
+    //     return new ChatComponentTranslation(MOD_ID + "." + key, args);
+    // }
+
+    public static ChatComponentText getTranslatedTextComponent(String key, Object... args) {
+        String translated = StatCollector.translateToLocalFormatted(MOD_ID + "." + key, args);
+        return new ChatComponentText(translated);
     }
 
     /**
@@ -128,7 +134,7 @@ public class AwayFromAuction {
             refreshHypixelApi();
             return;
         }
-        if (!onHypixel()) {
+        if (Config.GENERAL_ALWAYS_NOTIFY || !onHypixel()) {
             LOGGER.debug("Checking for notifications to send.");
             notifyEndingSoon(playerAuctionsMap.get(Minecraft.getMinecraft().thePlayer.getUniqueID()));
             notifyNewBid(this.playerAuctionMap.get(Minecraft.getMinecraft().thePlayer.getUniqueID()),
@@ -198,10 +204,10 @@ public class AwayFromAuction {
      */
     private void notifyNewBid(List<Auction> current, List<Auction> incoming) {
         if (current == null) {
-            LOGGER.debug("NotifyNewBid failing: Current Auction List is Null!");
+            LOGGER.warn("NotifyNewBid failing: Current Auction List is Null!");
             return;
         } else if (incoming == null) {
-            LOGGER.debug("NotifyNewBid failing: Incomming Auction list is Null!");
+            LOGGER.warn("NotifyNewBid failing: Incomming Auction list is Null!");
             return;
         }
 
@@ -239,7 +245,15 @@ public class AwayFromAuction {
                         new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view auction!")));
 
         int newBid = auction.getHighestBidAmount();
-        String otherUser = auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID());
+        String otherUser;
+        try{
+            otherUser = auction.getAFA().getPlayerName(
+                auction.getHighestBid().getBidderUUID()
+            );
+        } catch (NullPointerException e) {
+            LOGGER.error("NullPointer encountered getting player name!", e);
+            otherUser = "someone"; // For the chat message
+        }
         ChatComponentText bidInfo = new ChatComponentText(
                 " for " + AfAUtils.formatCoins(newBid) + " coin" + (newBid > 1 ? "s" : "") + " by " + otherUser + "! ");
 
@@ -276,7 +290,7 @@ public class AwayFromAuction {
         for (Auction currentAuction : current) {
             if (auctionMap.containsKey(currentAuction.getAuctionUUID())) {
                 Auction newAuction = auctionMap.get(currentAuction.getAuctionUUID());
-                if (currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount() && newAuction
+                if (currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount() && currentAuction
                         .getHighestBid().getBidderUUID().equals(Minecraft.getMinecraft().thePlayer.getUniqueID())) {
                     IChatComponent message = createOutbidText(currentAuction, newAuction);
                     LOGGER.info(message.getUnformattedText());
@@ -326,6 +340,7 @@ public class AwayFromAuction {
     private IChatComponent createHypixelLink() {
         if (onHypixel())
             return new ChatComponentText("");
+            
         ChatComponentText hypixelLink = new ChatComponentText("CLICK HERE");
         hypixelLink.getChatStyle().setUnderlined(true).setBold(true)
                 .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
