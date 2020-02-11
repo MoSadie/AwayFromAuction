@@ -8,11 +8,14 @@ import io.github.mosadie.awayfromauction.AwayFromAuction;
 import io.github.mosadie.awayfromauction.util.Auction.Bid;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreenBook;
+import net.minecraft.event.ClickEvent;
+import net.minecraft.event.HoverEvent;
 import net.minecraft.item.ItemEditableBook;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.nbt.NBTTagString;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
 
@@ -130,5 +133,30 @@ public class AfAUtils {
                 }
             }, 50);
         });
+    }
+
+    /**
+     * @return True if connected to the Hypixel Minecraft server, false otherwise.
+     */
+    public static boolean onHypixel() {
+        try {
+            return Minecraft.getMinecraft().getCurrentServerData().serverIP.contains(".hypixel.net");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static IChatComponent createHypixelLink() {
+        if (onHypixel())
+            return new ChatComponentText("");
+            
+        ChatComponentText hypixelLink = new ChatComponentText(" CLICK HERE");
+        hypixelLink.getChatStyle().setUnderlined(true).setBold(true)
+                .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))
+                .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        new ChatComponentText("Click to join the Hypixel server!")));
+        ChatComponentText ending = new ChatComponentText(" to join the Hypixel server!");
+        hypixelLink.appendSibling(ending);
+        return hypixelLink;
     }
 }

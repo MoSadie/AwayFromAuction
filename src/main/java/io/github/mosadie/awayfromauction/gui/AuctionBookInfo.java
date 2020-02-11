@@ -139,7 +139,7 @@ public class AuctionBookInfo implements IBookInfo {
 
             root.appendSibling(info);
             root.appendSibling(uuid);
-            if (!auction.getAFA().onHypixel())
+            if (!AfAUtils.onHypixel())
                 root.appendSibling(joinHypixel);
         }
 
