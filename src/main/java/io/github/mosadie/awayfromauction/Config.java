@@ -31,7 +31,8 @@ public class Config {
         cfg.addCustomCategoryComment(CATEGORY_GENERAL, "General Settings");
         GENERAL_REFRESH_DELAY = cfg.getInt("refreshDelay", CATEGORY_GENERAL, 60, 1, Integer.MAX_VALUE,
                 "Delay in seconds between refreshing data from Hypixel's API");
-        GENERAL_ALWAYS_NOTIFY = cfg.getBoolean("alwaysNotify", CATEGORY_GENERAL, false, "If true, will notify about auction while connected to the Hypixel network");
+        GENERAL_ALWAYS_NOTIFY = cfg.getBoolean("alwaysNotify", CATEGORY_GENERAL, false,
+                "If true, will notify about auction while connected to the Hypixel network");
     }
 
     private static void initHypixelConfig(Configuration cfg) {

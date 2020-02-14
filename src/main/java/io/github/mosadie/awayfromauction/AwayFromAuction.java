@@ -24,6 +24,8 @@ import org.apache.logging.log4j.Logger;
 
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
+import io.github.mosadie.awayfromauction.util.AuctionJsonDeserializer;
+import io.github.mosadie.awayfromauction.util.AuctionJsonSerializer;
 import net.hypixel.api.HypixelAPI;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.StatCollector;
@@ -41,9 +43,13 @@ public class AwayFromAuction {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private static final Gson GSON = new GsonBuilder().create();
+    private static final Gson GSON = new GsonBuilder()
+            .registerTypeAdapter(Auction[].class, new AuctionJsonDeserializer())
+            .registerTypeAdapter(Auction[].class, new AuctionJsonSerializer())
+            .create();
 
     private SyncThread syncThread;
+    private File syncCache;
 
     private HypixelAPI hypixelApi;
     private HttpClient httpClient = HttpClientBuilder.create().build();
@@ -64,6 +70,8 @@ public class AwayFromAuction {
         File directory = event.getModConfigurationDirectory();
         config = new Configuration(new File(directory.getPath(), "awayfromauction.cfg"));
         Config.readConfig();
+
+        syncCache = new File(directory.getPath(), "awayfromauction-cache.json");
 
         LOGGER.debug("Registering Client Command");
         ClientCommandHandler.instance.registerCommand(new AfACommand(this));
@@ -87,8 +95,9 @@ public class AwayFromAuction {
         return LOGGER;
     }
 
-    // public static ChatComponentTranslation getTranslatedTextComponent(String key, Object... args) {
-    //     return new ChatComponentTranslation(MOD_ID + "." + key, args);
+    // public static ChatComponentTranslation getTranslatedTextComponent(String key,
+    // Object... args) {
+    // return new ChatComponentTranslation(MOD_ID + "." + key, args);
     // }
 
     public static ChatComponentText getTranslatedTextComponent(String key, Object... args) {
@@ -172,8 +181,6 @@ public class AwayFromAuction {
         }
     }
 
-    
-
     private Map<UUID, String> nameCache;
 
     /**
@@ -229,9 +236,9 @@ public class AwayFromAuction {
             return UUID.fromString(AfAUtils.addHyphens(id));
         }
 
-        public Map<String,String> getProperties() {
-            Map<String,String> propertiesMap = new HashMap<>();
-            for (MCHeadsPropertyResponse propertyResponse: properties) {
+        public Map<String, String> getProperties() {
+            Map<String, String> propertiesMap = new HashMap<>();
+            for (MCHeadsPropertyResponse propertyResponse : properties) {
                 propertiesMap.put(propertyResponse.name, propertyResponse.value);
             }
             return propertiesMap;
@@ -253,7 +260,7 @@ public class AwayFromAuction {
         public String getName() {
             return name;
         }
-        
+
         public String getValue() {
             return value;
         }
@@ -268,9 +275,8 @@ public class AwayFromAuction {
      * @return Their UUID or null.
      */
     public UUID getPlayerUUID(String name) {
-        name = name.toLowerCase();
-        if (uuidCache.containsKey(name)) {
-            return uuidCache.get(name);
+        if (uuidCache.containsKey(name.toLowerCase())) {
+            return uuidCache.get(name.toLowerCase());
         }
 
         try {
@@ -280,10 +286,10 @@ public class AwayFromAuction {
             MCHeadsResponse mcHeadsResponse = GSON.fromJson(content, MCHeadsResponse.class);
 
             nameCache.put(mcHeadsResponse.getUUID(), name);
-            uuidCache.put(name, mcHeadsResponse.getUUID());
+            uuidCache.put(name.toLowerCase(), mcHeadsResponse.getUUID());
             return mcHeadsResponse.getUUID();
         } catch (IOException e) {
-            LOGGER.error("Exception encountered asking Mojang for player UUID! Exception: " + e.getLocalizedMessage());
+            LOGGER.error("Exception encountered asking MC-Heads for player UUID! Exception: " + e.getLocalizedMessage());
             LOGGER.catching(Level.ERROR, e);
             return null;
         } catch (Exception e) {
@@ -409,7 +415,7 @@ public class AwayFromAuction {
     void createSyncThread() {
         if (syncThread == null) {
             LOGGER.debug("Sync thread created!");
-            syncThread = new SyncThread(this);
+            syncThread = new SyncThread(this, syncCache, GSON);
             LOGGER.info("Starting sync thread");
             syncThread.start();
         }
@@ -419,7 +425,8 @@ public class AwayFromAuction {
         if (syncThread != null) {
             LOGGER.debug("Stopping sync thread");
             syncThread.stopFlag();
-            syncThread.interrupt();
+            //syncThread.interrupt();
+            LOGGER.info("Stopped sync thread");
             syncThread = null;
         }
     }

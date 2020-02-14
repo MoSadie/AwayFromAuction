@@ -149,7 +149,7 @@ public class AfAUtils {
     public static IChatComponent createHypixelLink() {
         if (onHypixel())
             return new ChatComponentText("");
-            
+
         ChatComponentText hypixelLink = new ChatComponentText(" CLICK HERE");
         hypixelLink.getChatStyle().setUnderlined(true).setBold(true)
                 .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa joinhypixel"))

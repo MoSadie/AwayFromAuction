@@ -42,8 +42,8 @@ public class Auction {
 
     private final AwayFromAuction afa;
 
-    public Auction(JsonObject auctionData, AwayFromAuction awa) {
-        this.afa = awa;
+    public Auction(JsonObject auctionData, AwayFromAuction afa) {
+        this.afa = afa;
         auctionUUID = UUID.fromString(addHyphens(auctionData.get("uuid").getAsString()));
         ownerUUID = UUID.fromString(addHyphens(auctionData.get("auctioneer").getAsString()));
         ownerProfileUUID = UUID.fromString(addHyphens(auctionData.get("profile_id").getAsString()));

@@ -192,11 +192,11 @@ public class AfACommand extends CommandBase {
             });
             break;
 
-        case "viewall":
-            Auction[] allAuctions = mod.getAuctions();
-            AuctionsBookInfo auctionsBookInfo = new AuctionsBookInfo(allAuctions);
-            AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(auctionsBookInfo));
-            break;
+        // case "viewall":
+        //     Auction[] allAuctions = mod.getAuctions();
+        //     AuctionsBookInfo auctionsBookInfo = new AuctionsBookInfo(allAuctions);
+        //     AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(auctionsBookInfo));
+        //     break;
 
         case "viewbids":
             Auction[] bidAuctions = mod.getBidOnAuctions();
@@ -237,7 +237,7 @@ public class AfACommand extends CommandBase {
 
             ChatComponentText message = AwayFromAuction.getTranslatedTextComponent("command.view.success",
                     auction.getAuctionUUID().toString());
-            message.getChatStyle().setUnderlined(true).setChatClickEvent(new ClickEvent(
+            message.getChatStyle().setChatClickEvent(new ClickEvent(
                     ClickEvent.Action.SUGGEST_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));
 
             Minecraft.getMinecraft().thePlayer.addChatMessage(message);

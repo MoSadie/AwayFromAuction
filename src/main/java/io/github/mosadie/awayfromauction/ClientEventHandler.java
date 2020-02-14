@@ -47,12 +47,12 @@ public class ClientEventHandler {
     }
 
     @SubscribeEvent
-    public void onConnect(ClientConnectedToServerEvent event) {// WorldEvent.Load event) {
+    public void onConnect(ClientConnectedToServerEvent event) {
         mod.createSyncThread();
     }
 
     @SubscribeEvent
-    public void onDisconnect(ClientDisconnectionFromServerEvent event) {// WorldEvent.Unload event) {
+    public void onDisconnect(ClientDisconnectionFromServerEvent event) {
         mod.stopSyncThread();
     }
 
@@ -71,9 +71,9 @@ public class ClientEventHandler {
                         new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/afa view " + auction.getAuctionUUID()))
                 .setChatHoverEvent(
                         new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view auction!")));
-        long time = auction.getEnd().getTime() - auction.getSyncTimestamp().getTime();
+        long time = (auction.getEnd().getTime() - auction.getSyncTimestamp().getTime()) / 1000;
         ChatComponentText endingTime = new ChatComponentText(
-                " is ending in about " + time + "second" + (time > 1 ? "s" : "") + "! ");
+                " is ending in about " + time + " second" + (time > 1 ? "s" : "") + "! ");
 
         IChatComponent hypixelLink = AfAUtils.createHypixelLink();
 
@@ -103,7 +103,7 @@ public class ClientEventHandler {
 
         int newBid = auction.getHighestBidAmount();
         String otherUser;
-        try{
+        try {
             otherUser = mod.getPlayerName(event.getBid().getBidderUUID());
             if (otherUser.equalsIgnoreCase("ERROR")) {
                 otherUser = "someone";
@@ -131,7 +131,7 @@ public class ClientEventHandler {
         }
 
         Auction auction = event.getAuction();
-        
+
         ChatComponentText root = new ChatComponentText("[AfA] You have been outbid on the auction for ");
 
         ChatComponentText itemName = new ChatComponentText(auction.getItemName());
@@ -141,13 +141,12 @@ public class ClientEventHandler {
                 .setChatHoverEvent(
                         new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText("Click to view auction!")));
 
-        
         String otherUser = mod.getPlayerName(auction.getHighestBid().getBidderUUID());
         if (otherUser.equalsIgnoreCase("ERROR")) {
             otherUser = "someone";
         }
-        ChatComponentText outbidBy = new ChatComponentText(
-                " by " + AfAUtils.formatCoins(event.getOutbidAmount()) + " coin" + (event.getOutbidAmount() > 1 ? "s" : "") + " by " + otherUser + "! ");
+        ChatComponentText outbidBy = new ChatComponentText(" by " + AfAUtils.formatCoins(event.getOutbidAmount())
+                + " coin" + (event.getOutbidAmount() > 1 ? "s" : "") + " by " + otherUser + "! ");
         IChatComponent hypixelLink = AfAUtils.createHypixelLink();
         root.appendSibling(itemName);
         root.appendSibling(outbidBy);

@@ -1,13 +1,21 @@
 package io.github.mosadie.awayfromauction;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import com.google.gson.Gson;
 
 import io.github.mosadie.awayfromauction.event.AuctionEndingSoonEvent;
 import io.github.mosadie.awayfromauction.event.AuctionNewBidEvent;
@@ -22,6 +30,8 @@ import net.minecraftforge.common.MinecraftForge;
 
 public class SyncThread extends Thread {
     private final AwayFromAuction afa;
+    private final File syncCache;
+    private final Gson GSON;
     private boolean stopFlag = false;
 
     private Map<UUID, Auction> allAuctions;
@@ -30,8 +40,12 @@ public class SyncThread extends Thread {
     private List<Auction> bidAuctions;
     private long totalCoins;
 
-    public SyncThread(AwayFromAuction mod) {
+    public SyncThread(AwayFromAuction mod, File syncCache, Gson GSON) {
+        setName("AwayFromAuctionSync");
         this.afa = mod;
+        this.syncCache = syncCache;
+        this.GSON = GSON;
+
         allAuctions = new HashMap<>();
         playerAuctionMap = new HashMap<>();
         itemAuctionMap = new HashMap<>();
@@ -41,12 +55,23 @@ public class SyncThread extends Thread {
 
     @Override
     public void run() {
+
+        if (syncCache.exists()) {
+            loadFromCache();
+        } else {
+            saveToCache();
+        }
+
         while (!this.isInterrupted() && !stopFlag && Minecraft.getMinecraft() != null) {
             try {
                 Thread.sleep(Config.GENERAL_REFRESH_DELAY * 1000);
-                AwayFromAuction.getLogger().info("Syncing with Hypixel Skyblock Auction House");
-                sync();
-                AwayFromAuction.getLogger().info("Sync finished!");
+                if (!stopFlag) {
+                    AwayFromAuction.getLogger().info("Syncing with Hypixel Skyblock Auction House");
+                    sync();
+                    AwayFromAuction.getLogger().info("Sync finished!");
+                } else {
+                    AwayFromAuction.getLogger().error("EDGE CASE SUCCESS"); //TODO remove debug
+                }
             } catch (InterruptedException e) {
                 // Do nothing, it's fine.
             }
@@ -134,7 +159,7 @@ public class SyncThread extends Thread {
             // - Ending Soon -
             if (tmpPlayerAuctionMap.containsKey(Minecraft.getMinecraft().thePlayer.getUniqueID())) {
                 for (Auction auction : tmpPlayerAuctionMap.get(Minecraft.getMinecraft().thePlayer.getUniqueID())) {
-                    if (auction.getEnd().getTime() - auction.getSyncTimestamp().getTime() < (5 * 60)) {
+                    if (auction.getEnd().getTime() - auction.getSyncTimestamp().getTime() < (5 * 60 * 1000)) {
                         AuctionEndingSoonEvent endingSoonEvent = new AuctionEndingSoonEvent(auction);
                         MinecraftForge.EVENT_BUS.post(endingSoonEvent);
                     }
@@ -190,6 +215,8 @@ public class SyncThread extends Thread {
             bidAuctions = tmpBidAuctions;
             totalCoins = tmpTotalCoins;
 
+            saveToCache();
+
         } catch (InterruptedException | ExecutionException | TimeoutException | NullPointerException e) {
             AwayFromAuction.getLogger()
                     .warn("An exception occured while attempting to sync auction details: " + e.getMessage());
@@ -233,7 +260,7 @@ public class SyncThread extends Thread {
     }
 
     public List<Auction> getItemAuctions(String item) {
-        if (itemAuctionMap.containsKey(item.toLowerCase())){
+        if (itemAuctionMap.containsKey(item.toLowerCase())) {
             return itemAuctionMap.get(item.toLowerCase());
         } else {
             return new ArrayList<>();
@@ -246,5 +273,75 @@ public class SyncThread extends Thread {
 
     public long getTotalCoins() {
         return totalCoins;
+    }
+
+    public void saveToCache() {
+        Auction[] auctions = getAllAuctions().values().toArray(new Auction[0]);
+        String json = GSON.toJson(auctions);
+
+        try {
+            syncCache.createNewFile();
+
+            OutputStreamWriter outputWriter = new OutputStreamWriter(new FileOutputStream(syncCache));
+            outputWriter.write(json);
+            outputWriter.close();
+        } catch (IOException e) {
+            AwayFromAuction.getLogger().error("Exception occured saving cache. ", e);
+        }
+    }
+
+    public void loadFromCache() {
+        if (!syncCache.exists()) {
+            AwayFromAuction.getLogger().warn("Cache Not Found!");
+            return;
+        }
+
+        try {
+            Scanner scanner = new Scanner(syncCache);
+            String content = scanner.nextLine();
+            scanner.close();
+
+            AwayFromAuction.getLogger().info("Content Length: " + content.length());
+
+            Auction[] auctions = GSON.fromJson(content, Auction[].class);
+
+            AwayFromAuction.getLogger().info("Auction Length: " + auctions.length);
+
+            Map<UUID, Auction> tmpAllAuctions = new HashMap<>();
+            Map<UUID, List<Auction>> tmpPlayerAuctionMap = new HashMap<>();
+            Map<String, List<Auction>> tmpItemAuctionMap = new HashMap<>();
+            List<Auction> tmpBidAuctions = new ArrayList<>();
+            long tmpTotalCoins = 0;
+
+            for (Auction auction : auctions) {
+                tmpAllAuctions.put(auction.getAuctionUUID(), auction);
+
+                if (!tmpPlayerAuctionMap.containsKey(auction.getAuctionOwnerUUID())) {
+                    tmpPlayerAuctionMap.put(auction.getAuctionOwnerUUID(), new ArrayList<>());
+                }
+                tmpPlayerAuctionMap.get(auction.getAuctionOwnerUUID()).add(auction);
+
+                if (!tmpItemAuctionMap.containsKey(auction.getItemName().toLowerCase())) {
+                    tmpItemAuctionMap.put(auction.getItemName().toLowerCase(), new ArrayList<>());
+                }
+                tmpItemAuctionMap.get(auction.getItemName().toLowerCase()).add(auction);
+
+                if (AfAUtils.bidsContainUUID(auction.getBids(), Minecraft.getMinecraft().thePlayer.getUniqueID()))
+                    tmpBidAuctions.add(auction);
+
+                for (Bid bid : auction.getBids()) {
+                    tmpTotalCoins += bid.getAmount();
+                }
+            }
+
+            allAuctions = tmpAllAuctions;
+            playerAuctionMap = tmpPlayerAuctionMap;
+            itemAuctionMap = tmpItemAuctionMap;
+            bidAuctions = tmpBidAuctions;
+            totalCoins = tmpTotalCoins;
+
+        } catch (FileNotFoundException e) {
+            AwayFromAuction.getLogger().error("Exception occured loading from cache. ", e);
+        }
     }
 }

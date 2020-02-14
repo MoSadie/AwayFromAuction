@@ -1,6 +1,7 @@
 package io.github.mosadie.awayfromauction.gui;
 
 import java.time.Duration;
+import java.util.Date;
 
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
@@ -45,7 +46,7 @@ public class AuctionsBookInfo implements IBookInfo {
                         new HoverEvent(HoverEvent.Action.SHOW_TEXT, new ChatComponentText(auction.getItemLore())));
 
         ChatComponentText newLine = new ChatComponentText("\n\n");
-        
+
         ChatComponentText owner = new ChatComponentText("Auction Owner: ");
         ChatComponentText ownerLink = new ChatComponentText(
                 auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
@@ -90,6 +91,9 @@ public class AuctionsBookInfo implements IBookInfo {
             }
             timeLeft = new ChatComponentText("Time Left: " + timeLeftString + "\n\n");
         }
+        Duration timeSinceSync = Duration.between(auction.getSyncTimestamp().toInstant(), new Date().toInstant());
+        timeLeft.getChatStyle().setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                new ChatComponentText("Time since last sync: " + timeSinceSync.getSeconds() + " seconds.")));
 
         root.appendSibling(itemTitle);
         root.appendSibling(newLine);
