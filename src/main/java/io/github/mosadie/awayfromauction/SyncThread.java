@@ -26,7 +26,11 @@ import io.github.mosadie.awayfromauction.util.Auction.Bid;
 import net.hypixel.api.HypixelAPI;
 import net.hypixel.api.reply.skyblock.SkyBlockAuctionsReply;
 import net.minecraft.client.Minecraft;
+import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.ForgeVersion.CheckResult;
+import net.minecraftforge.common.ForgeVersion.Status;
+import net.minecraftforge.fml.common.Loader;
 
 public class SyncThread extends Thread {
     private final AwayFromAuction afa;
@@ -70,7 +74,7 @@ public class SyncThread extends Thread {
                     sync();
                     AwayFromAuction.getLogger().info("Sync finished!");
                 } else {
-                    AwayFromAuction.getLogger().error("EDGE CASE SUCCESS"); //TODO remove debug
+                    AwayFromAuction.getLogger().error("EDGE CASE SUCCESS"); // TODO remove debug
                 }
             } catch (InterruptedException e) {
                 // Do nothing, it's fine.
@@ -101,8 +105,13 @@ public class SyncThread extends Thread {
             int pageTotal = reply.getTotalPages();
             AwayFromAuction.getLogger().info("Syncing " + pageTotal + " pages of auctions");
             if (reply.getAuctions().size() > 0) {
+                AwayFromAuction.getLogger()
+                        .info("Syncing auction house page 1 (" + reply.getAuctions().size() + " auctions)");
                 for (int i = 0; i < reply.getAuctions().size(); i++) {
                     Auction tmpAuction = new Auction(reply.getAuctions().get(i).getAsJsonObject(), afa);
+
+                    // Get Username
+                    fetchPlayerName(tmpAuction.getAuctionOwnerUUID());
 
                     tmpAllAuctions.put(tmpAuction.getAuctionUUID(), tmpAuction);
 
@@ -128,9 +137,14 @@ public class SyncThread extends Thread {
                 AwayFromAuction.getLogger().error("Attempted to get auctions, but no auctions found!");
             }
             for (int p = 1; p < pageTotal; p++) {
+                AwayFromAuction.getLogger().info(
+                        "Syncing auction house page " + (p + 1) + " (" + reply.getAuctions().size() + " auctions)");
                 SkyBlockAuctionsReply replyPage = hypixelApi.getSkyBlockAuctions(p).get(1, TimeUnit.MINUTES);
                 for (int i = 0; i < replyPage.getAuctions().size(); i++) {
                     Auction tmpAuction = new Auction(replyPage.getAuctions().get(i).getAsJsonObject(), afa);
+
+                    // Get Username
+                    fetchPlayerName(tmpAuction.getAuctionOwnerUUID());
 
                     tmpAllAuctions.put(tmpAuction.getAuctionUUID(), tmpAuction);
 
@@ -342,6 +356,31 @@ public class SyncThread extends Thread {
 
         } catch (FileNotFoundException e) {
             AwayFromAuction.getLogger().error("Exception occured loading from cache. ", e);
+        }
+    }
+
+    private void fetchPlayerName(UUID uuid) {
+        if (!afa.isPlayerCached(uuid)) {
+            NameThread thread = new NameThread(afa, uuid);
+            thread.start();
+        }
+    }
+
+    private class NameThread extends Thread {
+        private AwayFromAuction afa;
+        private UUID uuid;
+
+        public NameThread(AwayFromAuction afa, UUID uuid) {
+            setName("AwayFromAuctionNameFetch-" + uuid.toString());
+            this.afa = afa;
+            this.uuid = uuid;
+        }
+
+        @Override
+        public void run() {
+            if (Minecraft.getMinecraft().thePlayer != null) {
+                String username = afa.getPlayerName(uuid);
+            }
         }
     }
 }

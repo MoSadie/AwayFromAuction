@@ -167,7 +167,11 @@ public class AfACommand extends CommandBase {
                 }
             }
             AuctionSearchBookInfo itemAuctionSearchBookInfo = new AuctionSearchBookInfo(itemAuctions, item);
-            AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(itemAuctionSearchBookInfo));
+            AwayFromAuction.getLogger().info("Start BookItemStack");
+            ItemStack book = AfAUtils.convertBookInfoToBook(itemAuctionSearchBookInfo);
+            AwayFromAuction.getLogger().info("End BookItemStack. Begin Display");
+            AfAUtils.displayBook(book);//AfAUtils.convertBookInfoToBook(itemAuctionSearchBookInfo));
+            AwayFromAuction.getLogger().info("End Display");
             break;
 
         case "joinhypixel":

@@ -11,6 +11,10 @@ import net.minecraft.event.HoverEvent;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.IChatComponent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
+import net.minecraftforge.common.ForgeVersion;
+import net.minecraftforge.common.ForgeVersion.CheckResult;
+import net.minecraftforge.common.ForgeVersion.Status;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientConnectedToServerEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent.ClientDisconnectionFromServerEvent;
@@ -48,6 +52,12 @@ public class ClientEventHandler {
 
     @SubscribeEvent
     public void onConnect(ClientConnectedToServerEvent event) {
+        // Check for updates, and notify player if update is available.
+        CheckResult versionCheck = ForgeVersion.getResult(Loader.instance().getIndexedModList().get(AwayFromAuction.MOD_ID));
+        if (versionCheck.status == Status.OUTDATED) {
+            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("notice.outofdate", versionCheck.target.toString(), versionCheck.changes.get(versionCheck.target)));
+        }
+        
         mod.createSyncThread();
     }
 

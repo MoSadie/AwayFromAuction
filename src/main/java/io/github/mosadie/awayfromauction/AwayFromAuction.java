@@ -204,7 +204,7 @@ public class AwayFromAuction {
             uuidCache.put(mcHeadsResponse.getName(), uuid);
             return mcHeadsResponse.getName();
         } catch (IOException e) {
-            LOGGER.error("Exception encountered asking Mojang for player name! Exception: " + e.getLocalizedMessage());
+            LOGGER.error("Exception encountered asking MC-Heads for player name! Exception: " + e.getLocalizedMessage());
             LOGGER.catching(Level.ERROR, e);
             return "ERROR";
         } catch (Exception e) {
@@ -297,6 +297,14 @@ public class AwayFromAuction {
             LOGGER.catching(Level.ERROR, e);
             return null;
         }
+    }
+
+    public boolean isPlayerCached(String username) {
+        return uuidCache.containsKey(username);
+    }
+
+    public boolean isPlayerCached(UUID uuid) {
+        return nameCache.containsKey(uuid);
     }
 
     /**

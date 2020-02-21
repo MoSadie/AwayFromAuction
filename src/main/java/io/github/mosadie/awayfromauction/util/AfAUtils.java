@@ -105,15 +105,22 @@ public class AfAUtils {
     }
 
     public static ItemStack convertBookInfoToBook(IBookInfo bookInfo) {
+        AwayFromAuction.getLogger().info("Begin BookConversion");
+        AwayFromAuction.getLogger().info("Begin ItemStackInit");
         ItemStack bookStack = new ItemStack(new ItemEditableBook());
         bookStack.setTagCompound(new NBTTagCompound());
         bookStack.getTagCompound().setString("title", "AwayFromAuction");
         bookStack.getTagCompound().setString("author", "MoSadie");
+        AwayFromAuction.getLogger().info("End ItemStackInit");
 
+        AwayFromAuction.getLogger().info("Begin pageInit PAGES: " + bookInfo.getTotalPages());
         NBTTagList pages = bookStack.getTagCompound().getTagList("pages", 8);
         for (int i = 0; i < bookInfo.getTotalPages(); i++) {
+            AwayFromAuction.getLogger().info("Begin Page" + i);
             pages.appendTag(new NBTTagString(IChatComponent.Serializer.componentToJson(bookInfo.getPageContent(i))));
+            AwayFromAuction.getLogger().info("End Page" + i);
         }
+        AwayFromAuction.getLogger().info("End pageInit");
 
         bookStack.getTagCompound().setTag("pages", pages);
 
@@ -125,13 +132,19 @@ public class AfAUtils {
             return;
         }
         Minecraft.getMinecraft().addScheduledTask(() -> {
+            AwayFromAuction.getLogger().info("Begin ScheduledTask, BookScreen");
             GuiScreenBook bookScreen = new GuiScreenBook(Minecraft.getMinecraft().thePlayer, book, false);
+            AwayFromAuction.getLogger().info("End BookScreen Begin Timer");
             new Timer().schedule(new TimerTask() {
                 @Override
                 public void run() {
+                    AwayFromAuction.getLogger().info("Begin DelayedDisplay");
                     Minecraft.getMinecraft().displayGuiScreen(bookScreen);
+                    AwayFromAuction.getLogger().info("End DelayedDisplay");
                 }
             }, 50);
+            AwayFromAuction.getLogger().info("End Timer");
+            AwayFromAuction.getLogger().info("End Scheduled Task");
         });
     }
 

@@ -3,6 +3,7 @@ package io.github.mosadie.awayfromauction.gui;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.github.mosadie.awayfromauction.AwayFromAuction;
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
 import io.github.mosadie.awayfromauction.util.IBookInfo;
@@ -14,7 +15,7 @@ import net.minecraft.util.IChatComponent;
 public class AuctionSearchBookInfo implements IBookInfo {
 
     private final String query;
-    private final Auction[] auctions;
+    private final List<Auction> auctions;
 
     private static final int RESULTS_PER_PAGE = 3;
 
@@ -23,7 +24,7 @@ public class AuctionSearchBookInfo implements IBookInfo {
      */
     @Override
     public int getTotalPages() {
-        return auctions.length / RESULTS_PER_PAGE + 1;
+        return auctions.size() / RESULTS_PER_PAGE + 1;
     }
 
     /**
@@ -43,13 +44,14 @@ public class AuctionSearchBookInfo implements IBookInfo {
     }
 
     public AuctionSearchBookInfo(Auction[] auctions, String query) {
+        AwayFromAuction.getLogger().info("Start SearchBookInfo");
         this.query = query;
-        List<Auction> activeAuctions = new ArrayList<>();
+        this.auctions = new ArrayList<>();
         for (Auction auction : auctions) {
             if (!auction.getEnd().before(auction.getSyncTimestamp()))
-                activeAuctions.add(auction);
+                this.auctions.add(auction);
         }
-        this.auctions = activeAuctions.toArray(new Auction[0]);
+        AwayFromAuction.getLogger().info("End SearchBookInfo");
     }
 
     /**
@@ -61,9 +63,9 @@ public class AuctionSearchBookInfo implements IBookInfo {
      *         blank string.
      */
     private IChatComponent getAuctionLineOrBlank(int index) {
-        if (index >= auctions.length)
+        if (index >= auctions.size())
             return new ChatComponentText("");
-        Auction auction = auctions[index];
+        Auction auction = auctions.get(index);
         ChatComponentText auctionTextComponent = new ChatComponentText(
                 auction.getItemName() + (auction.getItemCount() > 0 ? " x" + auction.getItemCount() : "") + ": "
                         + (auction.getHighestBidAmount() > 0 ? auction.getHighestBidAmount() : auction.getStartingBid())

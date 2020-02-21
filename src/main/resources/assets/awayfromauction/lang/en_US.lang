@@ -20,3 +20,4 @@ awayfromauction.error.noauctions=[AfA] An error occured syncing auctions! Check 
 awayfromauction.error.notsync=[AfA] Auctions not synced yet! Please wait about %d seconds and try again.
 awayfromauction.gui.joinhypixel.body=You are about to leave your current server/world and join mc.hypixel.net.\n\nAre you sure you want to do this?
 awayfromauction.gui.joinhypixel.title=WARNING: About to change servers
+awayfromauction.notice.outofdate=[AfA] Notice: New version of AfA available! (Latest version: %s) %s
