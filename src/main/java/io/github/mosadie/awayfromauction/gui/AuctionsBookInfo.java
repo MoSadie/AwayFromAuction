@@ -49,18 +49,20 @@ public class AuctionsBookInfo implements IBookInfo {
 
         ChatComponentText owner = new ChatComponentText("Auction Owner: ");
         ChatComponentText ownerLink = new ChatComponentText(
-                auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()));
+                auction.getAFA().getUsernameCached(auction.getAuctionOwnerUUID()));
         ownerLink.getChatStyle().setUnderlined(true)
                 .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
-                        "/afa searchuser " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID())))
+                        "/afa searchuser " + auction.getAuctionOwnerUUID()))
                 .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                         new ChatComponentText("Click to view all auctions by "
-                                + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()))));
+                                + auction.getAFA().getUsernameCached(auction.getAuctionOwnerUUID()))));
         owner.appendSibling(ownerLink);
         owner.appendText("\n\n");
 
         ChatComponentText currentBid;
-        if (auction.getHighestBid() != null) {
+        if (auction.isBIN()) {
+            currentBid = new ChatComponentText("BIN Price: " + auction.getStartingBid() + "\n\n");
+        } else if (auction.getHighestBid() != null) {
             currentBid = new ChatComponentText("Current bid: " + auction.getHighestBidAmount() + " by "
                     + auction.getAFA().getPlayerName(auction.getHighestBid().getBidderUUID()) + "\n\n");
         } else {

@@ -2,6 +2,7 @@ package io.github.mosadie.awayfromauction;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -12,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -27,7 +29,10 @@ import io.github.mosadie.awayfromauction.util.Auction;
 import io.github.mosadie.awayfromauction.util.AuctionJsonDeserializer;
 import io.github.mosadie.awayfromauction.util.AuctionJsonSerializer;
 import net.hypixel.api.HypixelAPI;
+import net.minecraft.client.Minecraft;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.IChatComponent;
 import net.minecraft.util.StatCollector;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
@@ -45,8 +50,7 @@ public class AwayFromAuction {
 
     private static final Gson GSON = new GsonBuilder()
             .registerTypeAdapter(Auction[].class, new AuctionJsonDeserializer())
-            .registerTypeAdapter(Auction[].class, new AuctionJsonSerializer())
-            .create();
+            .registerTypeAdapter(Auction[].class, new AuctionJsonSerializer()).create();
 
     private SyncThread syncThread;
     private File syncCache;
@@ -95,14 +99,34 @@ public class AwayFromAuction {
         return LOGGER;
     }
 
-    // public static ChatComponentTranslation getTranslatedTextComponent(String key,
-    // Object... args) {
-    // return new ChatComponentTranslation(MOD_ID + "." + key, args);
-    // }
-
     public static ChatComponentText getTranslatedTextComponent(String key, Object... args) {
         String translated = StatCollector.translateToLocalFormatted(MOD_ID + "." + key, args);
-        return new ChatComponentText(translated);
+        ChatComponentText component = new ChatComponentText(translated);
+        component.getChatStyle().setColor(EnumChatFormatting.WHITE);
+        return component;
+    }
+
+    private static IChatComponent createChatPrefix() {
+        IChatComponent root = new ChatComponentText("[");
+        root.getChatStyle().setColor(EnumChatFormatting.GOLD);
+
+        IChatComponent middle = new ChatComponentText("AfA");
+        middle.getChatStyle().setColor(EnumChatFormatting.BLUE);
+        root.appendSibling(middle);
+
+        IChatComponent right = new ChatComponentText("] ");
+        right.getChatStyle().setColor(EnumChatFormatting.GOLD);
+        root.appendSibling(right);
+
+        return root;
+    }
+
+    public static void addChatComponentWithPrefix(IChatComponent component) {
+        IChatComponent prefix = createChatPrefix();
+
+        prefix.appendSibling(component);
+
+        Minecraft.getMinecraft().thePlayer.addChatComponentMessage(prefix);
     }
 
     /**
@@ -137,7 +161,7 @@ public class AwayFromAuction {
         HypixelAPI tmpApi = new HypixelAPI(apiKey);
 
         try {
-            tmpApi.getPlayerByUuid(UUID.fromString("698fffb6-be83-4fb9-b80e-d799c18b53b5")).get(1, TimeUnit.MINUTES);
+            tmpApi.getKey().get(1, TimeUnit.MINUTES);
             LOGGER.info("API key test passed!");
         } catch (Exception e) {
             LOGGER.warn("API key test failed! Exception: " + e.getLocalizedMessage());
@@ -184,7 +208,7 @@ public class AwayFromAuction {
     private Map<UUID, String> nameCache;
 
     /**
-     * Converts a player UUID to their Username.
+     * Converts a player UUID to their Username. Caches the result.
      * 
      * @param uuid UUID of a player
      * @return Their current Username or "ERROR"
@@ -197,6 +221,8 @@ public class AwayFromAuction {
         try {
             String url = "https://www.mc-heads.net/minecraft/profile/" + uuid.toString();
             HttpResponse response = httpClient.execute(new HttpGet(url));
+            if (response.getEntity() == null)
+                throw new NullPointerException("Profile respose enetity was null!");
             String content = EntityUtils.toString(response.getEntity(), "UTF-8");
             MCHeadsResponse mcHeadsResponse = GSON.fromJson(content, MCHeadsResponse.class);
 
@@ -204,7 +230,8 @@ public class AwayFromAuction {
             uuidCache.put(mcHeadsResponse.getName(), uuid);
             return mcHeadsResponse.getName();
         } catch (IOException e) {
-            LOGGER.error("Exception encountered asking MC-Heads for player name! Exception: " + e.getLocalizedMessage());
+            LOGGER.error(
+                    "Exception encountered asking MC-Heads for player name! Exception: " + e.getLocalizedMessage());
             LOGGER.catching(Level.ERROR, e);
             return "ERROR";
         } catch (Exception e) {
@@ -269,7 +296,7 @@ public class AwayFromAuction {
     private Map<String, UUID> uuidCache;
 
     /**
-     * Converts a player Username to a UUID.
+     * Converts a player Username to a UUID. Caches the result.
      * 
      * @param name Username of a player.
      * @return Their UUID or null.
@@ -282,6 +309,8 @@ public class AwayFromAuction {
         try {
             String url = "https://www.mc-heads.net/minecraft/profile/" + name;
             HttpResponse response = httpClient.execute(new HttpGet(url));
+            if (response.getEntity() == null)
+                throw new NullPointerException("Profile respose enetity was null!");
             String content = EntityUtils.toString(response.getEntity(), "UTF-8");
             MCHeadsResponse mcHeadsResponse = GSON.fromJson(content, MCHeadsResponse.class);
 
@@ -289,7 +318,8 @@ public class AwayFromAuction {
             uuidCache.put(name.toLowerCase(), mcHeadsResponse.getUUID());
             return mcHeadsResponse.getUUID();
         } catch (IOException e) {
-            LOGGER.error("Exception encountered asking MC-Heads for player UUID! Exception: " + e.getLocalizedMessage());
+            LOGGER.error(
+                    "Exception encountered asking MC-Heads for player UUID! Exception: " + e.getLocalizedMessage());
             LOGGER.catching(Level.ERROR, e);
             return null;
         } catch (Exception e) {
@@ -299,12 +329,136 @@ public class AwayFromAuction {
         }
     }
 
+    /**
+     * Checks if a player's username is in the name cache.
+     * 
+     * @param username The username of the player to check.
+     * @return True if the username is in the cache, false otherwise.
+     */
     public boolean isPlayerCached(String username) {
         return uuidCache.containsKey(username);
     }
 
+    /**
+     * Checks if a player's UUID is in the name cache.
+     * 
+     * @param uuid The UUID of the player to check.
+     * @return True if the UUID is in the cache, false otherwise.
+     */
     public boolean isPlayerCached(UUID uuid) {
         return nameCache.containsKey(uuid);
+    }
+
+    /**
+     * Either returns the username of the player if cached, or the UUID as a string.
+     * Does not attempt to fetch the username.
+     * 
+     * @param uuid The UUID of the player to look up.
+     * @return Either the username of the player or the player's UUID as a string.
+     */
+    public String getUsernameCached(UUID uuid) {
+        if (isPlayerCached(uuid)) {
+            return getPlayerName(uuid);
+        }
+
+        return uuid.toString();
+    }
+
+    /**
+     * Gets the current bazaar state from https://sky.lea.moe as an map of
+     * {@link BazaarProduct} objects.
+     * 
+     * @return The current state of the bazaar as an map of Bazaar Item IDs to
+     *         {@link BazaarProduct} objects.
+     */
+    public Map<String, BazaarProduct> getBazaarState() {
+        try {
+            String url = "https://sky.lea.moe/api/v2/bazaar";
+            HttpResponse response = httpClient.execute(new HttpGet(url));
+            Type responseType = new TypeToken<Map<String, BazaarProduct>>() {
+            }.getType();
+            String content = EntityUtils.toString(response.getEntity(), "UTF-8");
+            Map<String, BazaarProduct> bazaarState = GSON.fromJson(content, responseType);
+
+            return bazaarState;
+        } catch (IOException e) {
+            LOGGER.error("IOException encountered getting Bazaar state from sky.lea.moe! Exception: "
+                    + e.getLocalizedMessage());
+            LOGGER.catching(Level.ERROR, e);
+            return null;
+        } catch (Exception e) {
+            LOGGER.error("Exception encountered getting Bazaar state from sky.lea.moe! Exception: "
+                    + e.getLocalizedMessage());
+            LOGGER.catching(Level.ERROR, e);
+            return null;
+        }
+    }
+
+    /**
+     * A single product on the Bazaar.
+     */
+    public class BazaarProduct {
+        private String id;
+        private String name;
+        private double buyPrice;
+        private double sellPrice;
+        private int buyVolume;
+        private int sellVolume;
+        private double price;
+
+        /**
+         * @return The product's ID on the bazaar.
+         */
+        public String getId() {
+            return id;
+        }
+
+        /**
+         * @return The friendly name of the product.
+         */
+        public String getName() {
+            return name;
+        }
+
+        /**
+         * @return The current price to buy 1 of the product. Price is the weighted
+         *         average of the top 2% of buy orders.
+         */
+        public double getBuyPrice() {
+            return buyPrice;
+        }
+
+        /**
+         * @return The current price to sell 1 of the product. Price is the weighted
+         *         average of the top 2% of sell orders.
+         */
+        public double getSellPrice() {
+            return sellPrice;
+        }
+
+        /**
+         * @return The current number of items in buy orders. (i.e. The demand for the
+         *         product.)
+         */
+        public int getBuyVolume() {
+            return buyVolume;
+        }
+
+        /**
+         * @return The current number of items in sell orders. (i.e. The supply for the
+         *         product.)
+         */
+        public int getSellVolume() {
+            return sellVolume;
+        }
+
+        /**
+         * @return The average price of the product. Price is the average of the buy and
+         *         sell prices.
+         */
+        public double getPrice() {
+            return price;
+        }
     }
 
     /**
@@ -406,7 +560,37 @@ public class AwayFromAuction {
     }
 
     /**
-     * Refreshes the HypixelAPI object if it's not been initialized yet.
+     * Gets a list of all the bazaar products.
+     * 
+     * @return A list of all bazaar products as {@link BazaarProduct} objects.
+     */
+    public List<BazaarProduct> getBazaarProducts() {
+        return getBazaarProducts("");
+    }
+
+    /**
+     * Gets a subset of the bazzar products that contain the filter, case
+     * insensitive.
+     * 
+     * @param filter The string that must be part or all of the product name.
+     * @return The list of bazaar products that contain the filter as
+     *         {@link BazaarProduct} objects.
+     */
+    public List<BazaarProduct> getBazaarProducts(String filter) {
+        List<BazaarProduct> products = new ArrayList<>();
+        Map<String, BazaarProduct> bazaarState = syncThread.getBazaarProducts();
+        for (String id : bazaarState.keySet()) {
+            if (bazaarState.get(id).getName().toLowerCase().contains(filter.toLowerCase())) {
+                products.add(bazaarState.get(id));
+            }
+        }
+
+        return products;
+    }
+
+    /**
+     * Get the HypixelAPI object. Refreshes the HypixelAPI object if it's not been
+     * initialized yet.
      * 
      * @return The current/new HypixelAPI object or null if something went wrong.
      */
@@ -420,6 +604,9 @@ public class AwayFromAuction {
         return hypixelApi;
     }
 
+    /**
+     * Creates the sync thread if the thread does not already exist.
+     */
     void createSyncThread() {
         if (syncThread == null) {
             LOGGER.debug("Sync thread created!");
@@ -429,11 +616,13 @@ public class AwayFromAuction {
         }
     }
 
+    /**
+     * Stops the sync thread.
+     */
     void stopSyncThread() {
         if (syncThread != null) {
             LOGGER.debug("Stopping sync thread");
             syncThread.stopFlag();
-            //syncThread.interrupt();
             LOGGER.info("Stopped sync thread");
             syncThread = null;
         }

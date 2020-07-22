@@ -6,6 +6,10 @@ import java.time.Instant;
 import io.github.mosadie.awayfromauction.util.Auction;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
+/**
+ * Represents an auction ending soon. This event may be sent multiple times for
+ * the same auction.
+ */
 public class AuctionEndingSoonEvent extends Event {
     private final Auction auctionState;
 
@@ -18,6 +22,9 @@ public class AuctionEndingSoonEvent extends Event {
         return auctionState;
     }
 
+    /**
+     * @return How long is left on the auction.
+     */
     public Duration getTimeLeft() {
         return Duration.between(auctionState.getEnd().toInstant(), Instant.now());
     }

@@ -1,14 +1,18 @@
 package io.github.mosadie.awayfromauction;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
 
+import io.github.mosadie.awayfromauction.AwayFromAuction.BazaarProduct;
 import io.github.mosadie.awayfromauction.gui.AuctionBookInfo;
 import io.github.mosadie.awayfromauction.gui.AuctionSearchBookInfo;
 import io.github.mosadie.awayfromauction.gui.AuctionSelectItemBookInfo;
 import io.github.mosadie.awayfromauction.gui.AuctionsBookInfo;
+import io.github.mosadie.awayfromauction.gui.BazaarBookInfo;
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
 import net.minecraft.client.Minecraft;
@@ -26,6 +30,8 @@ import net.minecraft.event.ClickEvent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.realms.RealmsBridge;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.util.StatCollector;
 
 public class AfACommand extends CommandBase {
 
@@ -43,7 +49,7 @@ public class AfACommand extends CommandBase {
 
     @Override
     public String getCommandUsage(ICommandSender sender) {
-        return "[AfA] Usage:\n/afa viewall: View all auctions.\n/afa viewbids: View all auctions you've bid on.\n/afa search [Item Name]: Search the auction house for a specific item.\n/afa searchuser [Username]: Search the auction house for active auctions by a specific user.\n/afa supriseme: Shows a random auction.\n/afa view <uuid>: Shows info on an auction.\n/afa stats: Shows some various stats about the auction house.\n/afa key <key>: Manually set your Hypixel API key.\n/afa test: Test your API key.\n/afa joinhypixel: Promps you to join the Hypixel server.";
+        return StatCollector.translateToLocalFormatted(AwayFromAuction.MOD_ID + ".command.usage");
     }
 
     @Override
@@ -53,209 +59,245 @@ public class AfACommand extends CommandBase {
 
     @Override
     public void processCommand(ICommandSender sender, String[] args) throws CommandException {
-        AwayFromAuction.getLogger().debug("Command received! Command: " + CommandBase.buildString(args, 0));
 
         mod.createSyncThread();
 
         if (args.length < 1) {
-            Minecraft.getMinecraft().thePlayer
-                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
+            AwayFromAuction.addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("command.usage"));
             return;
         }
 
         switch (args[0].toLowerCase()) {
-        case "key":
-            if (args.length < 2) {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
-                return;
-            }
-
-            String key = args[1];
-
-            if (mod.validateAPIKey(key)) {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.start"));
-                if (mod.testAPIKey(key)) {
-                    Minecraft.getMinecraft().thePlayer
-                            .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.succeed"));
-                    mod.setAPIKey(key);
-                    Minecraft.getMinecraft().thePlayer
-                            .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.key.success"));
-                    return;
-                } else {
-                    Minecraft.getMinecraft().thePlayer
-                            .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
+            case "key":
+                if (args.length < 2) {
+                    AwayFromAuction
+                            .addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("command.usage"));
                     return;
                 }
-            } else {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.key.fail"));
-                return;
-            }
 
-        case "test":
-            Minecraft.getMinecraft().thePlayer
-                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.start"));
-            if (mod.testAPIKey(Config.HYPIXEL_API_KEY)) {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.succeed"));
-            } else {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
-            }
-            break;
+                String key = args[1];
 
-        case "stats":
-            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent(
-                    "command.stats", mod.getAuctions().length, mod.getAuctionItems().length,
-                    mod.getAuctionsByPlayer(Minecraft.getMinecraft().thePlayer.getUniqueID()).length,
-                    mod.getBidOnAuctions().length, AfAUtils.formatCoins(mod.getTotalCoins())));
-            break;
-
-        case "mine":
-        case "me":
-        case "myauctions":
-        case "viewmine":
-        case "viewme":
-            args = new String[] { args[0], Minecraft.getMinecraft().thePlayer.getName() };
-            // Fall to the searchuser command
-
-        case "searchuser":
-            if (args.length != 2) {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.help"));
-                return;
-            }
-            UUID userUUID = mod.getPlayerUUID(args[1]);
-            if (userUUID == null) {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.searchuser.notfound"));
-                return;
-            }
-            Auction[] userAuctions = mod.getAuctionsByPlayer(userUUID);
-            AuctionSearchBookInfo searchBookInfo = new AuctionSearchBookInfo(userAuctions, args[1]);
-            ItemStack searchBookItemStack = AfAUtils.convertBookInfoToBook(searchBookInfo);
-            AfAUtils.displayBook(searchBookItemStack);
-            break;
-
-        case "search":
-            if (args.length < 2) {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.search.help"));
-                return;
-            }
-            String item = args[1];
-            for (int i = 2; i < args.length; i++) {
-                item += " " + args[i];
-            }
-            Auction[] itemAuctions;
-            if (mod.isAuctionItem(item)) {
-                itemAuctions = mod.getAuctionsByItem(item);
-            } else {
-                String[] possibleItems = mod.getAuctionItems(item);
-                if (possibleItems.length == 0) {
-                    Minecraft.getMinecraft().thePlayer
-                            .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.search.itemnotfound"));
-                    return;
-                } else if (possibleItems.length == 1) {
-                    itemAuctions = mod.getAuctionsByItem(possibleItems[0]);
-                } else {
-                    AuctionSelectItemBookInfo itemSelectBookInfo = new AuctionSelectItemBookInfo(possibleItems, mod);
-                    AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(itemSelectBookInfo));
-                    return;
-                }
-            }
-            AuctionSearchBookInfo itemAuctionSearchBookInfo = new AuctionSearchBookInfo(itemAuctions, item);
-            AwayFromAuction.getLogger().info("Start BookItemStack");
-            ItemStack book = AfAUtils.convertBookInfoToBook(itemAuctionSearchBookInfo);
-            AwayFromAuction.getLogger().info("End BookItemStack. Begin Display");
-            AfAUtils.displayBook(book);//AfAUtils.convertBookInfoToBook(itemAuctionSearchBookInfo));
-            AwayFromAuction.getLogger().info("End Display");
-            break;
-
-        case "joinhypixel":
-            if (AfAUtils.onHypixel()) {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.joinhypixel.fail"));
-                return;
-            }
-            Minecraft.getMinecraft().thePlayer
-                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.joinhypixel.start"));
-
-            GuiYesNo confirmScreen = new GuiYesNo(new YesNoCallback(),
-                    AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.title").getFormattedText(),
-                    AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.body").getFormattedText(), 0);
-            Minecraft.getMinecraft().addScheduledTask(() -> {
-                new Timer().schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        Minecraft.getMinecraft().displayGuiScreen(confirmScreen);
+                if (mod.validateAPIKey(key)) {
+                    AwayFromAuction
+                            .addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("apitest.start"));
+                    if (mod.testAPIKey(key)) {
+                        AwayFromAuction.addChatComponentWithPrefix(
+                                AwayFromAuction.getTranslatedTextComponent("apitest.succeed"));
+                        mod.setAPIKey(key);
+                        AwayFromAuction.addChatComponentWithPrefix(
+                                AwayFromAuction.getTranslatedTextComponent("command.key.success"));
+                        return;
+                    } else {
+                        AwayFromAuction
+                                .addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
+                        return;
                     }
-                }, 50);
-            });
-            break;
+                } else {
+                    AwayFromAuction
+                            .addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("command.key.fail"));
+                    return;
+                }
 
-        // case "viewall":
-        //     Auction[] allAuctions = mod.getAuctions();
-        //     AuctionsBookInfo auctionsBookInfo = new AuctionsBookInfo(allAuctions);
-        //     AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(auctionsBookInfo));
-        //     break;
+            case "test":
+                AwayFromAuction.addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("apitest.start"));
+                if (mod.testAPIKey(Config.HYPIXEL_API_KEY)) {
+                    AwayFromAuction
+                            .addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("apitest.succeed"));
+                } else {
+                    AwayFromAuction
+                            .addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("apitest.fail"));
+                }
+                break;
 
-        case "viewbids":
-            Auction[] bidAuctions = mod.getBidOnAuctions();
-            AuctionsBookInfo bidAuctionsBookInfo = new AuctionsBookInfo(bidAuctions);
-            AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(bidAuctionsBookInfo));
-            break;
+            case "stats":
+                AwayFromAuction.addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("command.stats",
+                        mod.getAuctions().length, mod.getAuctionItems().length,
+                        mod.getAuctionsByPlayer(Minecraft.getMinecraft().thePlayer.getUniqueID()).length,
+                        mod.getBidOnAuctions().length, AfAUtils.formatCoins(mod.getTotalCoins())));
+                break;
 
-        case "supriseme":
-            Minecraft.getMinecraft().thePlayer
-                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.supriseme.success"));
-            Auction[] auctions = mod.getAuctions();
-            if (auctions.length == 0) {
-                Minecraft.getMinecraft().thePlayer.addChatMessage(
-                        AwayFromAuction.getTranslatedTextComponent("error.notsync", Config.GENERAL_REFRESH_DELAY));
-                return;
-            }
-            Auction randAuction = auctions[new Random().nextInt(auctions.length)];
-            args = new String[] { "view", randAuction.getAuctionUUID().toString() };
-            // Fall to view case
+            case "mine":
+            case "me":
+            case "myauctions":
+            case "viewmine":
+            case "viewme":
+                args = new String[] { args[0], Minecraft.getMinecraft().thePlayer.getUniqueID().toString() };
+                // Fall to the searchuser command
 
-        case "view":
-            if (args.length < 2) {
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.view.usage"));
-                return;
-            }
+            case "searchuser":
+            case "usersearch":
+                if (args.length != 2) {
+                    AwayFromAuction.addChatComponentWithPrefix(
+                            AwayFromAuction.getTranslatedTextComponent("command.searchuser.help"));
+                    return;
+                }
+                UUID userUUID;
+                try {
+                    // Try to resolve UUID from String.
+                    String uuidString = args[1];
+                    if (!uuidString.contains("-")) {
+                        uuidString = AfAUtils.addHyphens(uuidString);
+                    }
+                    userUUID = UUID.fromString(uuidString);
+                } catch (IllegalArgumentException e) {
+                    // It's fine, we fall back to username lookup.
+                    userUUID = mod.getPlayerUUID(args[1]);
+                }
 
-            UUID auctionUUID;
+                if (userUUID == null) {
+                    AwayFromAuction.addChatComponentWithPrefix(
+                            AwayFromAuction.getTranslatedTextComponent("command.searchuser.notfound"));
+                    return;
+                }
+                Auction[] userAuctions = mod.getAuctionsByPlayer(userUUID);
+                AuctionSearchBookInfo searchBookInfo = new AuctionSearchBookInfo(userAuctions, args[1]);
+                ItemStack searchBookItemStack = AfAUtils.convertBookInfoToBook(searchBookInfo);
+                AfAUtils.displayBook(searchBookItemStack);
+                break;
 
-            if (args[1].contains("-")) {
-                auctionUUID = UUID.fromString(args[1]);
-            } else {
-                auctionUUID = UUID.fromString(AfAUtils.addHyphens(args[1]));
-            }
+            case "search":
+            case "searchitem":
+            case "itemsearch":
+                if (args.length < 2) {
+                    AwayFromAuction.addChatComponentWithPrefix(
+                            AwayFromAuction.getTranslatedTextComponent("command.search.help"));
+                    return;
+                }
+                String item = args[1];
+                for (int i = 2; i < args.length; i++) {
+                    item += " " + args[i];
+                }
+                Auction[] itemAuctions;
+                if (mod.isAuctionItem(item)) {
+                    itemAuctions = mod.getAuctionsByItem(item);
+                } else {
+                    String[] possibleItems = mod.getAuctionItems(item);
+                    if (possibleItems.length == 0) {
+                        AwayFromAuction.addChatComponentWithPrefix(
+                                AwayFromAuction.getTranslatedTextComponent("command.search.itemnotfound"));
+                        return;
+                    } else if (possibleItems.length == 1) {
+                        itemAuctions = mod.getAuctionsByItem(possibleItems[0]);
+                    } else {
+                        AuctionSelectItemBookInfo itemSelectBookInfo = new AuctionSelectItemBookInfo(possibleItems,
+                                mod);
+                        AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(itemSelectBookInfo));
+                        return;
+                    }
+                }
+                AuctionSearchBookInfo itemAuctionSearchBookInfo = new AuctionSearchBookInfo(itemAuctions, item);
+                AwayFromAuction.getLogger().debug("Start BookItemStack");
+                ItemStack book = AfAUtils.convertBookInfoToBook(itemAuctionSearchBookInfo);
+                AwayFromAuction.getLogger().debug("End BookItemStack. Begin Display");
+                AfAUtils.displayBook(book);
+                AwayFromAuction.getLogger().debug("End Display");
+                break;
 
-            Auction auction = mod.getAuction(auctionUUID);
-            AuctionBookInfo auctionBookInfo = new AuctionBookInfo(auction);
+            case "joinhypixel":
+                if (AfAUtils.onHypixel()) {
+                    AwayFromAuction.addChatComponentWithPrefix(
+                            AwayFromAuction.getTranslatedTextComponent("command.joinhypixel.fail"));
+                    return;
+                }
+                AwayFromAuction.addChatComponentWithPrefix(
+                        AwayFromAuction.getTranslatedTextComponent("command.joinhypixel.start"));
 
-            ChatComponentText message = AwayFromAuction.getTranslatedTextComponent("command.view.success",
-                    auction.getAuctionUUID().toString());
-            message.getChatStyle().setChatClickEvent(new ClickEvent(
-                    ClickEvent.Action.SUGGEST_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));
+                GuiYesNo confirmScreen = new GuiYesNo(new JoinHypixelYesNoCallback(),
+                        AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.title").getFormattedText(),
+                        AwayFromAuction.getTranslatedTextComponent("gui.joinhypixel.body").getFormattedText(), 0);
+                Minecraft.getMinecraft().addScheduledTask(() -> {
+                    new Timer().schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            Minecraft.getMinecraft().displayGuiScreen(confirmScreen);
+                        }
+                    }, 50);
+                });
+                break;
 
-            Minecraft.getMinecraft().thePlayer.addChatMessage(message);
+            // case "viewall":
+            // Auction[] allAuctions = mod.getAuctions();
+            // AuctionsBookInfo auctionsBookInfo = new AuctionsBookInfo(allAuctions);
+            // AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(auctionsBookInfo));
+            // break;
 
-            AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(auctionBookInfo));
-            break;
+            case "viewbids":
+                Auction[] bidAuctions = mod.getBidOnAuctions();
+                AuctionsBookInfo bidAuctionsBookInfo = new AuctionsBookInfo(bidAuctions);
+                AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(bidAuctionsBookInfo));
+                break;
 
-        default:
-            Minecraft.getMinecraft().thePlayer
-                    .addChatMessage(AwayFromAuction.getTranslatedTextComponent("command.usage"));
+            case "supriseme":
+                AwayFromAuction.addChatComponentWithPrefix(
+                        AwayFromAuction.getTranslatedTextComponent("command.supriseme.success"));
+                Auction[] auctions = mod.getAuctions();
+                if (auctions.length == 0) {
+                    AwayFromAuction.addChatComponentWithPrefix(
+                            AwayFromAuction.getTranslatedTextComponent("error.notsync", Config.GENERAL_REFRESH_DELAY));
+                    return;
+                }
+                Auction randAuction = auctions[new Random().nextInt(auctions.length)];
+                args = new String[] { "view", randAuction.getAuctionUUID().toString() };
+                // Fall to view case
+
+            case "view":
+                if (args.length < 2) {
+                    AwayFromAuction.addChatComponentWithPrefix(
+                            AwayFromAuction.getTranslatedTextComponent("command.view.usage"));
+                    return;
+                }
+
+                UUID auctionUUID;
+
+                if (args[1].contains("-")) {
+                    auctionUUID = UUID.fromString(args[1]);
+                } else {
+                    auctionUUID = UUID.fromString(AfAUtils.addHyphens(args[1]));
+                }
+
+                Auction auction = mod.getAuction(auctionUUID);
+                AuctionBookInfo auctionBookInfo = new AuctionBookInfo(auction);
+
+                ChatComponentText message = AwayFromAuction.getTranslatedTextComponent("command.view.success",
+                        auction.getAuctionUUID().toString());
+                message.getChatStyle().setColor(EnumChatFormatting.WHITE).setChatClickEvent(new ClickEvent(
+                        ClickEvent.Action.SUGGEST_COMMAND, "/afa view " + auction.getAuctionUUID().toString()));
+
+                AwayFromAuction.addChatComponentWithPrefix(message);
+
+                AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(auctionBookInfo));
+                break;
+
+            case "bazaar":
+                List<BazaarProduct> products;
+                if (args.length == 1) { // Show book of all items.
+                    products = mod.getBazaarProducts();
+                } else if (args.length > 1) { // Show book of filtered items.
+                    String filter = args[1];
+                    for (int i = 2; i < args.length; i++) {
+                        filter += " " + args[i];
+                    }
+                    products = mod.getBazaarProducts(filter);
+                } else { // Something went very wrong. Error out using an empty product list.
+                    products = new ArrayList<>();
+                }
+
+                if (products.size() == 0) {
+                    ChatComponentText bazaarNoItemMessage = AwayFromAuction
+                            .getTranslatedTextComponent("command.bazaar.noitemsfound");
+                    AwayFromAuction.addChatComponentWithPrefix(bazaarNoItemMessage);
+                } else {
+                    BazaarBookInfo bazaarBookInfo = new BazaarBookInfo(products.toArray(new BazaarProduct[] {}));
+                    AfAUtils.displayBook(AfAUtils.convertBookInfoToBook(bazaarBookInfo));
+                }
+                break;
+
+            default:
+                AwayFromAuction.addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("command.usage"));
         }
     }
 
-    private class YesNoCallback implements GuiYesNoCallback {
+    private class JoinHypixelYesNoCallback implements GuiYesNoCallback {
 
         @Override
         public void confirmClicked(boolean result, int id) {
@@ -282,9 +324,6 @@ public class AfACommand extends CommandBase {
                     ServerData hypixelServer = new ServerData("Hypixel", "mc.hypixel.net", false);
                     GuiConnecting connectScreen = new GuiConnecting(Minecraft.getMinecraft().currentScreen,
                             Minecraft.getMinecraft(), hypixelServer);
-                    // ConnectingScreen screen = new
-                    // ConnectingScreen(Minecraft.getMinecraft().currentScreen,
-                    // Minecraft.getMinecraft(), hypixelServer);
                     Minecraft.getMinecraft().displayGuiScreen(connectScreen);
                 });
             } else {

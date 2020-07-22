@@ -39,6 +39,7 @@ public class Auction {
     private final UUID[] claimedBidders; // I have no idea what this means, other than it's player UUIDs.
     private final int highestBidAmount;
     private final Bid[] bids;
+    private final boolean bin;
 
     private final AwayFromAuction afa;
 
@@ -108,6 +109,12 @@ public class Auction {
         for (int i = 0; i < bidsSize; i++) {
             bids[i] = new Bid(auctionData.get("bids").getAsJsonArray().get(i).getAsJsonObject());
         }
+
+        if (auctionData.has("bin")) {
+            bin = auctionData.get("bin").getAsBoolean();
+        } else {
+            bin = false;
+        }
     }
 
     private Auction() {
@@ -130,6 +137,7 @@ public class Auction {
         claimedBidders = new UUID[] { Minecraft.getMinecraft().thePlayer.getUniqueID() };
         highestBidAmount = 0;
         bids = new Bid[] { new Bid() };
+        bin = false;
         afa = null;
     }
 
@@ -215,6 +223,10 @@ public class Auction {
 
     public Bid[] getBids() {
         return bids;
+    }
+
+    public boolean isBIN() {
+        return bin;
     }
 
     public AwayFromAuction getAFA() {

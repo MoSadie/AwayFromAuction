@@ -5,6 +5,9 @@ import io.github.mosadie.awayfromauction.util.Auction.Bid;
 import net.minecraft.client.Minecraft;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
+/**
+ * Represents being outbid on an auction.
+ */
 public class AuctionOutbidEvent extends Event {
     private final Auction auctionState;
 
@@ -31,6 +34,9 @@ public class AuctionOutbidEvent extends Event {
         return auctionState;
     }
 
+    /**
+     * @return The amount the player was outbid by.
+     */
     public long getOutbidAmount() {
         return coinDiff;
     }

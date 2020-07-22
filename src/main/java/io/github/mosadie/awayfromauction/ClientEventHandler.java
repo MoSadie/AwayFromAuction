@@ -5,10 +5,10 @@ import io.github.mosadie.awayfromauction.event.AuctionNewBidEvent;
 import io.github.mosadie.awayfromauction.event.AuctionOutbidEvent;
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
-import net.minecraft.client.Minecraft;
 import net.minecraft.event.ClickEvent;
 import net.minecraft.event.HoverEvent;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IChatComponent;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.common.ForgeVersion;
@@ -28,24 +28,24 @@ public class ClientEventHandler {
 
     @SubscribeEvent
     public void onReceiveChat(ClientChatReceivedEvent event) {
-        mod.createSyncThread();
+        mod.createSyncThread(); // Ensures the sync thread is created
         String message = event.message.getUnformattedText();
 
-        // Checks to see if message is about a new API key
+        // Checks to see if message is about a new API key and if we are on Hypixel
         if (message.startsWith("Your new API key is ") && AfAUtils.onHypixel()) {
-            AwayFromAuction.getLogger().info("API Key message autodected!");
+            AwayFromAuction.getLogger().info("API Key message dected!");
             try {
                 String key = message.split("Your new API key is ")[1];
                 if (mod.validateAPIKey(key)) {
                     if (mod.setAPIKey(key)) {
-                        Minecraft.getMinecraft().thePlayer
-                                .addChatMessage(AwayFromAuction.getTranslatedTextComponent("autoapikey.success"));
+                        AwayFromAuction.addChatComponentWithPrefix(
+                                AwayFromAuction.getTranslatedTextComponent("autoapikey.success"));
                     }
                 }
             } catch (Exception e) {
                 AwayFromAuction.getLogger().warn("Exception occured setting API key: " + e.getLocalizedMessage());
-                Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(AwayFromAuction.getTranslatedTextComponent("autoapikey.fail"));
+                AwayFromAuction
+                        .addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("autoapikey.fail"));
             }
         }
     }
@@ -53,11 +53,13 @@ public class ClientEventHandler {
     @SubscribeEvent
     public void onConnect(ClientConnectedToServerEvent event) {
         // Check for updates, and notify player if update is available.
-        CheckResult versionCheck = ForgeVersion.getResult(Loader.instance().getIndexedModList().get(AwayFromAuction.MOD_ID));
+        CheckResult versionCheck = ForgeVersion
+                .getResult(Loader.instance().getIndexedModList().get(AwayFromAuction.MOD_ID));
         if (versionCheck.status == Status.OUTDATED) {
-            Minecraft.getMinecraft().thePlayer.addChatMessage(AwayFromAuction.getTranslatedTextComponent("notice.outofdate", versionCheck.target.toString(), versionCheck.changes.get(versionCheck.target)));
+            AwayFromAuction.addChatComponentWithPrefix(AwayFromAuction.getTranslatedTextComponent("notice.outofdate",
+                    versionCheck.target.toString(), versionCheck.changes.get(versionCheck.target)));
         }
-        
+
         mod.createSyncThread();
     }
 
@@ -74,7 +76,8 @@ public class ClientEventHandler {
 
         Auction auction = event.getAuction();
 
-        ChatComponentText root = new ChatComponentText("[AfA] Your auction for ");
+        ChatComponentText root = new ChatComponentText("Your auction for ");
+        root.getChatStyle().setColor(EnumChatFormatting.WHITE);
         ChatComponentText itemName = new ChatComponentText(auction.getItemName());
         itemName.getChatStyle().setUnderlined(true)
                 .setChatClickEvent(
@@ -91,7 +94,7 @@ public class ClientEventHandler {
         root.appendSibling(endingTime);
         root.appendSibling(hypixelLink);
 
-        Minecraft.getMinecraft().thePlayer.addChatMessage(root);
+        AwayFromAuction.addChatComponentWithPrefix(root);
     }
 
     @SubscribeEvent
@@ -102,7 +105,8 @@ public class ClientEventHandler {
 
         Auction auction = event.getAuction();
 
-        ChatComponentText root = new ChatComponentText("[AfA] There is a new bid on your auction for the ");
+        ChatComponentText root = new ChatComponentText("There is a new bid on your auction for the ");
+        root.getChatStyle().setColor(EnumChatFormatting.WHITE);
 
         ChatComponentText itemName = new ChatComponentText(auction.getItemName());
         itemName.getChatStyle().setUnderlined(true).setColor(AfAUtils.getColorFromTier(auction.getTier()))
@@ -131,7 +135,7 @@ public class ClientEventHandler {
         root.appendSibling(bidInfo);
         root.appendSibling(hypixelLink);
 
-        Minecraft.getMinecraft().thePlayer.addChatMessage(root);
+        AwayFromAuction.addChatComponentWithPrefix(root);
     }
 
     @SubscribeEvent
@@ -142,7 +146,8 @@ public class ClientEventHandler {
 
         Auction auction = event.getAuction();
 
-        ChatComponentText root = new ChatComponentText("[AfA] You have been outbid on the auction for ");
+        ChatComponentText root = new ChatComponentText("You have been outbid on the auction for ");
+        root.getChatStyle().setColor(EnumChatFormatting.WHITE);
 
         ChatComponentText itemName = new ChatComponentText(auction.getItemName());
         itemName.getChatStyle().setUnderlined(true).setColor(AfAUtils.getColorFromTier(auction.getTier()))
@@ -162,6 +167,6 @@ public class ClientEventHandler {
         root.appendSibling(outbidBy);
         root.appendSibling(hypixelLink);
 
-        Minecraft.getMinecraft().thePlayer.addChatMessage(root);
+        AwayFromAuction.addChatComponentWithPrefix(root);
     }
 }

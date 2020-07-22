@@ -16,8 +16,6 @@ import org.apache.commons.codec.binary.Base64OutputStream;
 
 import io.github.mosadie.awayfromauction.AwayFromAuction;
 import io.github.mosadie.awayfromauction.util.Auction.Bid;
-import net.minecraft.init.Items;
-import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompressedStreamTools;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
@@ -60,7 +58,7 @@ public class AuctionJsonSerializer implements JsonSerializer<Auction[]> {
                 compound.setInteger("Count", auction.getItemCount());
                 nbtList.appendTag(compound);
             }
-            
+
             nbt.setTag("i", nbtList);
 
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -91,6 +89,8 @@ public class AuctionJsonSerializer implements JsonSerializer<Auction[]> {
                 bids.add(bidJson);
             }
             auctionJson.add("bids", bids);
+
+            auctionJson.addProperty("bin", auction.isBIN());
 
             array.add(auctionJson);
         }

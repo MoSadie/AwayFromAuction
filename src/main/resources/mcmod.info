@@ -2,11 +2,11 @@
     {
         "modid": "awayfromauction",
         "name": "AwayFromAuction",
-        "description": "This mod allows you to be playing on a different world while still being able to check on the Hypixel Skyblock auction house.\nIt will notify you when your auctions are almost finished, you've been outbid, or an auction you've bid on is finished.",
+        "description": "This mod allows you to be playing on a different world while still being able to check on the Hypixel Skyblock auction house.\nIt will notify you when your auctions are almost finished, you've been outbid, or some has bid on your auction.",
         "version": "${version}",
         "mcversion": "${mcversion}",
         "url": "https://github.com/MoSadie/AwayFromAuction",
         "authorList": ["MoSadie"],
-        "credits": "Thanks to the Hypixel Dev team for making the API available and providing a library to access it."
+        "credits": "Thanks to the Hypixel Dev team for making the API available and providing a library to access it. And thanks to LeaPhant for proving a very easy to use API for the bazaar."
     }
 ]

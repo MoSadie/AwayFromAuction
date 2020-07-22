@@ -3,7 +3,6 @@ package io.github.mosadie.awayfromauction.gui;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.github.mosadie.awayfromauction.AwayFromAuction;
 import io.github.mosadie.awayfromauction.util.AfAUtils;
 import io.github.mosadie.awayfromauction.util.Auction;
 import io.github.mosadie.awayfromauction.util.IBookInfo;
@@ -44,14 +43,12 @@ public class AuctionSearchBookInfo implements IBookInfo {
     }
 
     public AuctionSearchBookInfo(Auction[] auctions, String query) {
-        AwayFromAuction.getLogger().info("Start SearchBookInfo");
         this.query = query;
         this.auctions = new ArrayList<>();
         for (Auction auction : auctions) {
             if (!auction.getEnd().before(auction.getSyncTimestamp()))
                 this.auctions.add(auction);
         }
-        AwayFromAuction.getLogger().info("End SearchBookInfo");
     }
 
     /**
@@ -73,9 +70,10 @@ public class AuctionSearchBookInfo implements IBookInfo {
         auctionTextComponent.getChatStyle().setColor(AfAUtils.getColorFromTier(auction.getTier()))
                 .setChatClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
                         "/afa view " + auction.getAuctionUUID().toString()))
-                .setChatHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                        new ChatComponentText(
-                                "Auctioneer: " + auction.getAFA().getPlayerName(auction.getAuctionOwnerUUID()) + "\n"
+                .setChatHoverEvent(
+                        new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                new ChatComponentText("Auction Owner: "
+                                        + auction.getAFA().getUsernameCached(auction.getAuctionOwnerUUID()) + "\n"
                                         + auction.getItemLore())));
         return auctionTextComponent;
     }

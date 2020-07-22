@@ -45,7 +45,7 @@ repositories {
 
 dependencies {
     //shade 'com.github.HypixelDev.PublicAPI:Java:6a518217c0' //TODO: Evetually set a version instead of a commit. 2.0.0 doesn't have skyblock features.
-    shade 'com.github.MoSadie.PublicAPI:Java:f620cffa09' //TODO: PR these changes back to HypixelDev/PublicAPI
+    shade 'com.github.MoSadie.PublicAPI:Java:3d31d1fdc1' //TODO: PR these changes back to HypixelDev/PublicAPI
 
 }
 

@@ -10,13 +10,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import com.google.gson.Gson;
 
+import io.github.mosadie.awayfromauction.AwayFromAuction.BazaarProduct;
 import io.github.mosadie.awayfromauction.event.AuctionEndingSoonEvent;
 import io.github.mosadie.awayfromauction.event.AuctionNewBidEvent;
 import io.github.mosadie.awayfromauction.event.AuctionOutbidEvent;
@@ -26,11 +29,7 @@ import io.github.mosadie.awayfromauction.util.Auction.Bid;
 import net.hypixel.api.HypixelAPI;
 import net.hypixel.api.reply.skyblock.SkyBlockAuctionsReply;
 import net.minecraft.client.Minecraft;
-import net.minecraftforge.common.ForgeVersion;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.ForgeVersion.CheckResult;
-import net.minecraftforge.common.ForgeVersion.Status;
-import net.minecraftforge.fml.common.Loader;
 
 public class SyncThread extends Thread {
     private final AwayFromAuction afa;
@@ -44,6 +43,8 @@ public class SyncThread extends Thread {
     private List<Auction> bidAuctions;
     private long totalCoins;
 
+    private Map<String, BazaarProduct> bazaarMap;
+
     public SyncThread(AwayFromAuction mod, File syncCache, Gson GSON) {
         setName("AwayFromAuctionSync");
         this.afa = mod;
@@ -55,6 +56,8 @@ public class SyncThread extends Thread {
         itemAuctionMap = new HashMap<>();
         bidAuctions = new ArrayList<>();
         totalCoins = 0;
+
+        bazaarMap = new TreeMap<>();
     }
 
     @Override
@@ -74,7 +77,7 @@ public class SyncThread extends Thread {
                     sync();
                     AwayFromAuction.getLogger().info("Sync finished!");
                 } else {
-                    AwayFromAuction.getLogger().error("EDGE CASE SUCCESS"); // TODO remove debug
+                    // All is fine, silently fall out, the stop flag was set while we were sleeping.
                 }
             } catch (InterruptedException e) {
                 // Do nothing, it's fine.
@@ -83,24 +86,25 @@ public class SyncThread extends Thread {
     }
 
     /**
-     * Syncs all active auction data from the Hypixel API. Sorts that data into
-     * multiple groups and calls
-     * {@link AwayFromAuction#updateAuctions(Map, Map, Map, List)} to update the
-     * auction cache.
+     * Syncs all active auction and bazaar data from the Hypixel API and
+     * https://sky.lea.moe. Sorts that data into multiple groups and caches it.
      */
     private void sync() {
-        // Get updated auction house state
         if (Minecraft.getMinecraft().thePlayer == null) {
             AwayFromAuction.getLogger().info("Player is null, skipping sync.");
             return;
         }
         HypixelAPI hypixelApi = afa.getOrRefreshHypixelAPI();
+
+        // Get updated auction house state
+
         Map<UUID, Auction> tmpAllAuctions = new HashMap<>();
         Map<UUID, List<Auction>> tmpPlayerAuctionMap = new HashMap<>();
         Map<String, List<Auction>> tmpItemAuctionMap = new HashMap<>();
         List<Auction> tmpBidAuctions = new ArrayList<>();
         long tmpTotalCoins = 0;
         try {
+            // Sync the first page.
             SkyBlockAuctionsReply reply = hypixelApi.getSkyBlockAuctions(0).get(1, TimeUnit.MINUTES);
             int pageTotal = reply.getTotalPages();
             AwayFromAuction.getLogger().info("Syncing " + pageTotal + " pages of auctions");
@@ -110,25 +114,32 @@ public class SyncThread extends Thread {
                 for (int i = 0; i < reply.getAuctions().size(); i++) {
                     Auction tmpAuction = new Auction(reply.getAuctions().get(i).getAsJsonObject(), afa);
 
-                    // Get Username
+                    // Fetch Username
                     fetchPlayerName(tmpAuction.getAuctionOwnerUUID());
 
-                    tmpAllAuctions.put(tmpAuction.getAuctionUUID(), tmpAuction);
+                    // Add to all auctions cache
+                    if (!tmpAllAuctions.containsKey(tmpAuction.getAuctionUUID()))
+                        tmpAllAuctions.put(tmpAuction.getAuctionUUID(), tmpAuction);
 
+                    // Sort into groups by auction owner UUID.
                     if (!tmpPlayerAuctionMap.containsKey(tmpAuction.getAuctionOwnerUUID())) {
                         tmpPlayerAuctionMap.put(tmpAuction.getAuctionOwnerUUID(), new ArrayList<>());
                     }
                     tmpPlayerAuctionMap.get(tmpAuction.getAuctionOwnerUUID()).add(tmpAuction);
 
+                    // Sort into groups by item name.
                     if (!tmpItemAuctionMap.containsKey(tmpAuction.getItemName().toLowerCase())) {
                         tmpItemAuctionMap.put(tmpAuction.getItemName().toLowerCase(), new ArrayList<>());
                     }
                     tmpItemAuctionMap.get(tmpAuction.getItemName().toLowerCase()).add(tmpAuction);
 
+                    // Group all auctions with a bid from the current player.
                     if (AfAUtils.bidsContainUUID(tmpAuction.getBids(),
-                            Minecraft.getMinecraft().thePlayer.getUniqueID()))
+                            Minecraft.getMinecraft().thePlayer.getUniqueID())) {
                         tmpBidAuctions.add(tmpAuction);
+                    }
 
+                    // Add to to the total coins in the auction house.
                     for (Bid bid : tmpAuction.getBids()) {
                         tmpTotalCoins += bid.getAmount();
                     }
@@ -136,6 +147,8 @@ public class SyncThread extends Thread {
             } else {
                 AwayFromAuction.getLogger().error("Attempted to get auctions, but no auctions found!");
             }
+
+            // Repeat for the rest of the pages.
             for (int p = 1; p < pageTotal; p++) {
                 AwayFromAuction.getLogger().info(
                         "Syncing auction house page " + (p + 1) + " (" + reply.getAuctions().size() + " auctions)");
@@ -143,29 +156,42 @@ public class SyncThread extends Thread {
                 for (int i = 0; i < replyPage.getAuctions().size(); i++) {
                     Auction tmpAuction = new Auction(replyPage.getAuctions().get(i).getAsJsonObject(), afa);
 
-                    // Get Username
+                    // Fetch Username
                     fetchPlayerName(tmpAuction.getAuctionOwnerUUID());
 
+                    // Add to all auctions cache
                     tmpAllAuctions.put(tmpAuction.getAuctionUUID(), tmpAuction);
 
+                    // Sort into groups by auction owner UUID.
                     if (!tmpPlayerAuctionMap.containsKey(tmpAuction.getAuctionOwnerUUID())) {
                         tmpPlayerAuctionMap.put(tmpAuction.getAuctionOwnerUUID(), new ArrayList<>());
                     }
                     tmpPlayerAuctionMap.get(tmpAuction.getAuctionOwnerUUID()).add(tmpAuction);
 
+                    // Sort into groups by item name.
                     if (!tmpItemAuctionMap.containsKey(tmpAuction.getItemName().toLowerCase())) {
                         tmpItemAuctionMap.put(tmpAuction.getItemName().toLowerCase(), new ArrayList<>());
                     }
                     tmpItemAuctionMap.get(tmpAuction.getItemName().toLowerCase()).add(tmpAuction);
 
+                    // Group all auctions with a bid from the current player.
                     if (AfAUtils.bidsContainUUID(tmpAuction.getBids(),
-                            Minecraft.getMinecraft().thePlayer.getUniqueID()))
+                            Minecraft.getMinecraft().thePlayer.getUniqueID())) {
                         tmpBidAuctions.add(tmpAuction);
+                    }
 
+                    // Add to to the total coins in the auction house.
                     for (Bid bid : tmpAuction.getBids()) {
                         tmpTotalCoins += bid.getAmount();
                     }
                 }
+            }
+
+            // Sync Bazaar
+
+            Map<String, BazaarProduct> tmpBazaarMap = afa.getBazaarState();
+            if (tmpBazaarMap != null) {
+                bazaarMap = tmpBazaarMap;
             }
 
             // Look for events
@@ -189,8 +215,11 @@ public class SyncThread extends Thread {
             for (Auction currentAuction : bidAuctions) {
                 if (tmpOutbidAuctionMap.containsKey(currentAuction.getAuctionUUID())) {
                     Auction newAuction = tmpOutbidAuctionMap.get(currentAuction.getAuctionUUID());
-                    if (currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount() && currentAuction
-                            .getHighestBid().getBidderUUID().equals(Minecraft.getMinecraft().thePlayer.getUniqueID())) {
+
+                    boolean newHighBid = currentAuction.getHighestBidAmount() < newAuction.getHighestBidAmount();
+                    boolean notThePlayer = !newAuction.getHighestBid().getBidderUUID()
+                            .equals(Minecraft.getMinecraft().thePlayer.getUniqueID());
+                    if (newHighBid && notThePlayer) {
                         AuctionOutbidEvent outbidEvent = new AuctionOutbidEvent(newAuction);
                         MinecraftForge.EVENT_BUS.post(outbidEvent);
                     }
@@ -215,7 +244,7 @@ public class SyncThread extends Thread {
             for (Auction auction : tmpCurrentOwnedAuctions) {
                 if (tmpNewBidAuctionMap.containsKey(auction.getAuctionUUID())) {
                     Auction newState = tmpNewBidAuctionMap.get(auction.getAuctionUUID());
-                    if (newState.getHighestBidAmount() > auction.getHighestBidAmount()) {
+                    if (newState.getBids().length > auction.getBids().length) {
                         AuctionNewBidEvent newBidEvent = new AuctionNewBidEvent(newState);
                         MinecraftForge.EVENT_BUS.post(newBidEvent);
                     }
@@ -242,15 +271,33 @@ public class SyncThread extends Thread {
         stopFlag = true;
     }
 
+    /**
+     * Returns a map of all current auctions. The mapping is from Auction UUID ->
+     * Auction object.
+     * 
+     * @return A map from auction UUID to an Auction object
+     */
     public Map<UUID, Auction> getAllAuctions() {
         return allAuctions;
     }
 
+    /**
+     * Returns a list of active/unclaimed auctions owned by a player.
+     * 
+     * @param name The username of the player to get auctions for.
+     * @return A list of active/unclaimed auctions owned by the specified player.
+     */
     public List<Auction> getPlayerAuctions(String name) {
         UUID uuid = afa.getPlayerUUID(name);
         return getPlayerAuctions(uuid);
     }
 
+    /**
+     * Returns a list of active/unclaimed auctions owned by a player.
+     * 
+     * @param uuid The UUID of the player to get auctions for.
+     * @return A list of active/unclaimed auctions owned by the specified player.
+     */
     public List<Auction> getPlayerAuctions(UUID uuid) {
         if (uuid == null) {
             AwayFromAuction.getLogger().warn("Attempted to get auctions for non existing player!");
@@ -264,15 +311,30 @@ public class SyncThread extends Thread {
         }
     }
 
+    /**
+     * @return An array of all known items that are up for auction.
+     */
     public String[] getAllItems() {
         return itemAuctionMap.keySet().toArray(new String[0]);
     }
 
+    /**
+     * Checks if an item matches the name of any item up for auction.
+     * 
+     * @param item the name of the item to check. Case insensitive.
+     * @return True if the item exists in the auction house, false otherwise.
+     */
     public boolean isItem(String item) {
         item = item.toLowerCase();
         return !itemAuctionMap.containsKey(item);
     }
 
+    /**
+     * Returns a list of all active/unclaimed auctions for a specified item.
+     * 
+     * @param item The case-insensitive name of the item.
+     * @return A list of all the active/unclaimed auctions for the specified item.
+     */
     public List<Auction> getItemAuctions(String item) {
         if (itemAuctionMap.containsKey(item.toLowerCase())) {
             return itemAuctionMap.get(item.toLowerCase());
@@ -281,15 +343,33 @@ public class SyncThread extends Thread {
         }
     }
 
+    /**
+     * @return A list of all active/unclaimed auctions the player has bid on.
+     */
     public List<Auction> getBidOnAuctions() {
         return bidAuctions;
     }
 
+    /**
+     * @return The total number of coins currently in bids in the auction house.
+     */
     public long getTotalCoins() {
         return totalCoins;
     }
 
-    public void saveToCache() {
+    /**
+     * Gets the current state of the Bazaar.
+     * 
+     * @return A mapping from a bazaar product's name to the BazaarProduct object.
+     */
+    public Map<String, BazaarProduct> getBazaarProducts() {
+        return bazaarMap;
+    }
+
+    /**
+     * Saves the current auctions to the cache file.
+     */
+    private void saveToCache() {
         Auction[] auctions = getAllAuctions().values().toArray(new Auction[0]);
         String json = GSON.toJson(auctions);
 
@@ -304,7 +384,10 @@ public class SyncThread extends Thread {
         }
     }
 
-    public void loadFromCache() {
+    /**
+     * Loads the auctions from the cache file.
+     */
+    private void loadFromCache() {
         if (!syncCache.exists()) {
             AwayFromAuction.getLogger().warn("Cache Not Found!");
             return;
@@ -315,11 +398,11 @@ public class SyncThread extends Thread {
             String content = scanner.nextLine();
             scanner.close();
 
-            AwayFromAuction.getLogger().info("Content Length: " + content.length());
+            AwayFromAuction.getLogger().info("[AfA]Cache Content Length: " + content.length());
 
             Auction[] auctions = GSON.fromJson(content, Auction[].class);
 
-            AwayFromAuction.getLogger().info("Auction Length: " + auctions.length);
+            AwayFromAuction.getLogger().info("Cache Auction Number: " + auctions.length);
 
             Map<UUID, Auction> tmpAllAuctions = new HashMap<>();
             Map<UUID, List<Auction>> tmpPlayerAuctionMap = new HashMap<>();
@@ -359,28 +442,17 @@ public class SyncThread extends Thread {
         }
     }
 
+    /**
+     * Attempt to fetch the player name asynchronously if not already cached. Does
+     * not return the player name.
+     * 
+     * @param uuid The UUID of the player.
+     */
     private void fetchPlayerName(UUID uuid) {
         if (!afa.isPlayerCached(uuid)) {
-            NameThread thread = new NameThread(afa, uuid);
-            thread.start();
-        }
-    }
-
-    private class NameThread extends Thread {
-        private AwayFromAuction afa;
-        private UUID uuid;
-
-        public NameThread(AwayFromAuction afa, UUID uuid) {
-            setName("AwayFromAuctionNameFetch-" + uuid.toString());
-            this.afa = afa;
-            this.uuid = uuid;
-        }
-
-        @Override
-        public void run() {
-            if (Minecraft.getMinecraft().thePlayer != null) {
-                String username = afa.getPlayerName(uuid);
-            }
+            CompletableFuture<Void> username = CompletableFuture.runAsync(() -> afa.getPlayerName(uuid));
+            // username.thenAccept(name -> AwayFromAuction.getLogger().info("Username
+            // Cached: " + name));
         }
     }
 }
