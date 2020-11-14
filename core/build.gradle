@@ -1,0 +1,37 @@
+plugins {
+    id 'java-library'
+}
+
+version = 1.0
+group = 'io.github.mosadie.awayfromauction.core'
+archivesBaseName = "AwayFromAuction-Core"
+
+//configurations {
+//    shade
+//    compile.extendsFrom shade
+//}
+
+dependencies {
+    //compile 'com.github.HypixelDev.PublicAPI:Java:6a518217c0' //TODO: Evetually set a version instead of a commit. 2.0.0 doesn't have skyblock features.
+    api 'com.github.MoSadie.PublicAPI:Java:3d31d1fdc1' //TODO: PR these changes back to HypixelDev/PublicAPI
+}
+
+// Example for how to get properties into the manifest for reading by the runtime..
+jar {
+    manifest {
+        attributes([
+            "Specification-Title": "awayfromauction-core",
+            "Specification-Vendor": "MoSadie",
+            "Specification-Version": "1", // We are version 1 of ourselves
+            "Implementation-Title": project.name,
+            "Implementation-Version": "${version}",
+            "Implementation-Vendor" :"MoSadie",
+            "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+//    configurations.shade.each { dep ->
+//        from(project.zipTree(dep)){
+//            exclude 'META-INF', 'META-INF/**'
+//        }
+//    }
+}

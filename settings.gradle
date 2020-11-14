@@ -1,0 +1,3 @@
+rootProject.name="AwayFromAuction"
+
+include "core", "1.8.9"
